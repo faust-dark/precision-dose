@@ -1,0 +1,29 @@
+{
+  "id": "tacrolimus_cyp3a5_and_azole_ddi",
+  "description": "Tacrolimus trough in the early post-transplant range with a CYP3A5 non-expresser on fluconazole; the DDI and the phase of therapy both appear in the attribution",
+  "citation": "Passey C et al. Br J Clin Pharmacol 2011;72:948-957; KDIGO transplant guideline 2009",
+  "source_verified": true,
+  "drug": "tacrolimus",
+  "target": "trough_early",
+  "pta_n": 800,
+  "patient": {
+    "schema_version": "1.0",
+    "age_years": 45,
+    "sex": "female",
+    "weight_kg": 65.0,
+    "height_cm": 163.0,
+    "serum_creatinine_mg_dL": 1.35,
+    "albumin_g_dL": 3.9,
+    "days_post_transplant": 30,
+    "genotypes": {"CYP3A5": "*3/*3"},
+    "co_medications": [{"name": "fluconazole", "dose_mg": 400}],
+    "indication": "kidney_transplant_maintenance"
+  },
+  "checks": [
+    {"path": "exposure.trough", "op": "between", "value": [7, 15]},
+    {"path": "attribution.cl.total_change_percent", "op": "le", "value": -40,
+     "note": "phase (day 30 -> x0.86) plus fluconazole inhibition"},
+    {"path": "parameters.values.v1", "op": "between", "value": [330, 500]},
+    {"path": "exposure.matrix", "op": "eq", "value": "whole_blood"}
+  ]
+}

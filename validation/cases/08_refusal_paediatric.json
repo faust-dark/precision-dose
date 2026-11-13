@@ -1,0 +1,17 @@
+{
+  "id": "paediatric_refusal",
+  "description": "A 12-year-old is refused rather than dosed with adult allometric exponents",
+  "citation": "Engine scope: v1 is validated for adults only",
+  "source_verified": true,
+  "drug": "vancomycin",
+  "expect_error": "E_AGE_OUT_OF_SCOPE",
+  "patient": {
+    "schema_version": "1.0",
+    "age_years": 12,
+    "sex": "male",
+    "weight_kg": 40.0,
+    "height_cm": 150.0,
+    "serum_creatinine_mg_dL": 0.7
+  },
+  "checks": []
+}

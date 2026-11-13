@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0",
+  "patient_id": "DEMO-APIX-001",
+  "age_years": 82,
+  "sex": "female",
+  "weight_kg": 58.0,
+  "height_cm": 158.0,
+  "serum_creatinine_mg_dL": 1.6,
+  "albumin_g_dL": 3.6,
+  "indication": "nonvalvular_atrial_fibrillation"
+}

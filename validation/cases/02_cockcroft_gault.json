@@ -1,0 +1,39 @@
+{
+  "id": "cockcroft_gault_reference_case",
+  "description": "Cockcroft-Gault CrCl reproduced with all three weight metrics, and the guideline-relevant spread shown",
+  "citation": "Cockcroft DW, Gault MH. Prediction of creatinine clearance from serum creatinine. Nephron 1976;16:31-41",
+  "source_verified": true,
+  "drug": "vancomycin",
+  "pta_n": 200,
+  "patient": {
+    "schema_version": "1.0",
+    "age_years": 60,
+    "sex": "male",
+    "weight_kg": 90.0,
+    "height_cm": 175.0,
+    "serum_creatinine_mg_dL": 1.0
+  },
+  "checks": [
+    {
+      "path": "patient.derived.crcl_cg_mL_min.value.total_body_weight",
+      "op": "approx",
+      "value": 100.0,
+      "tolerance": 0.01,
+      "note": "(140-60)*90/(72*1.0) = 100.0"
+    },
+    {
+      "path": "patient.derived.crcl_cg_mL_min.value.ideal_body_weight",
+      "op": "approx",
+      "value": 78.3,
+      "tolerance": 0.6,
+      "note": "IBW 70.47 kg -> 78.3 mL/min"
+    },
+    {
+      "path": "patient.derived.crcl_cg_mL_min.value.adjusted_body_weight",
+      "op": "approx",
+      "value": 86.98,
+      "tolerance": 0.05,
+      "note": "ABW 78.28 kg -> (140-60)*78.28/(72*1.0) = 86.98 mL/min"
+    }
+  ]
+}

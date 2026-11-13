@@ -1,0 +1,159 @@
+# Vancomycin — curated PK library entry.
+# Curation contract: every number below is either transcribed from a cited
+# source or declared as a modelling assumption with a test that bounds its
+# effect. See CURATION.md.
+
+schema_version = "1.0"
+drug = "vancomycin"
+display_name = "Vancomycin"
+drug_class = "glycopeptide"
+entry_version = "2026.11.1"
+status = "resolved"
+decision_basis = "pk_target"
+
+[model]
+structure = "two_compartment"
+route_default = "iv"
+amount_unit = "mg"
+concentration_unit = "mg/L"
+concentration_matrix = "serum"
+parameterization = "explicit"
+requires = []
+
+# Reference individual of the source model: CL is proportional to Cockcroft-
+# Gault CrCl; V1 is proportional to age (the model found no weight effect on
+# volume, which is a known limitation for obesity — see provenance.known_gaps).
+cl_ref = 4.400        # L/h at CrCl 100 mL/min  (= 0.044 x 100)
+v1_ref = 37.940       # L at age 70 y          (= 0.542 x 70)
+v2_ref = 44.200       # L
+q_ref = 6.950         # L/h
+f = 1.0
+
+[model.sources]
+cl_ref = "S1"
+v1_ref = "S1"
+v2_ref = "S1"
+q_ref = "S1"
+iiv = "S1"
+residual = "S1"
+
+[model.scaling]
+renal_metric = "crcl_cg_total"
+renal_reference = 100.0
+cl_renal_exponent = 1.0
+fraction_renal_clearance = 0.85
+cl_weight_exponent = 0.0
+v_weight_exponent = 0.0
+v1_age_exponent = 1.0
+v1_age_reference = 70.0
+hepatic_applies = false
+
+[model.iiv]
+cl_cv_percent = 35.78
+v1_cv_percent = 20.93
+v2_cv_percent = 57.27
+q_cv_percent = 39.50
+correlation_cl_v1 = 0.0
+
+[model.residual]
+type = "additive"
+sd = 4.51
+cv_percent = 0.0
+
+# Vancomycin is not metabolised by CYPs; the transporter/DDI block is empty on
+# purpose rather than omitted by accident.
+[model.ddi]
+
+# Intradialytic clearance for high-flux haemodialysis. 100 mL/min is the centre
+# of the 93-108 mL/min range measured by the two recovery studies cited; the
+# two-compartment model reproduces the 15-38% post-dialysis rebound on its own,
+# so rebound is a prediction here rather than an assumption.
+[model.dialysis]
+hd_additional_cl_l_h = 6.0
+source = "S3"
+note = "100 mL/min across a 4 h high-flux session"
+
+[[products]]
+name = "vial 500 mg"
+amount = 500.0
+salt_factor = 1.0
+
+[[products]]
+name = "vial 1000 mg"
+amount = 1000.0
+salt_factor = 1.0
+
+[[targets]]
+id = "auc24_mic"
+metric = "auc24_over_mic"
+unit = "h"
+low = 400.0
+high = 600.0
+matrix = "serum"
+default = true
+source = "S2"
+note = "AUC24/MIC at steady state, MIC assumed 1.0 mg/L by broth microdilution unless supplied. Primary target in the 2020 consensus guideline."
+
+[[targets]]
+id = "trough"
+metric = "trough"
+unit = "mg/L"
+low = 10.0
+high = 20.0
+matrix = "serum"
+default = false
+source = "S2"
+note = "Retained for laboratories that report troughs only. The guideline notes trough-based dosing misses the AUC target in a substantial fraction of patients; the engine reports both."
+
+[[safety]]
+id = "auc24_nephrotoxicity"
+metric = "auc24"
+threshold = 600.0
+direction = "above"
+source = "S2"
+note = "AUC24 > 600 mg*h/L is associated with increased acute kidney injury; the guideline target ceiling is the same number."
+
+[constraints]
+max_single_dose = 3000.0
+max_daily_dose = 4500.0
+min_interval_h = 6.0
+allowed_intervals = [8, 12, 24, 48]
+dose_step = 250.0
+loading_mg_per_kg = 25.0
+loading_weight_metric = "total"
+loading_max = 3000.0
+loading_infusion_min = 120
+infusion_options = [60, 90, 120, 180]
+default_infusion_min = 120
+
+[monitoring]
+tdm_strategy = "two_level_auc"
+sampling = "peak 1-2 h after the end of infusion and a trough before the next dose; AUC24 by trapezoid or Bayesian estimation"
+
+[citations.S1]
+ref = "Purwonugroho TA, Chulavatnatol S, Preechagoon Y, Chindavijak B, Malathum K, Bunuparadah P. Population pharmacokinetics of vancomycin in Thai patients. ScientificWorldJournal. 2012;2012:762649."
+doi = "10.1100/2012/762649"
+note = "Two-compartment model; CL = 0.044 x CrCl(CG), V1 = 0.542 x age, Q = 6.95 L/h, V2 = 44.2 L; IIV 35.8/20.9/39.5/57.3%; additive residual 4.51 mg/L."
+
+[citations.S3]
+ref = "Pollard TA, Lampasona V, Akkerman S, Tom K, Hooks M, Mullins R, Marbury T. Vancomycin redistribution: dosing recommendations following high-flux hemodialysis. Kidney Int. 1994;45(1):232-237; and Decker BS et al. EXTRIP recommendations on lithium poisoning, Clin Toxicol 2015 (dialysis clearance methodology)."
+doi = "10.1038/ki.1994.28"
+note = "Intradialytic vancomycin clearance 100.6-108.5 mL/min with F-60/F-80 polysulfone dialysers; 15-38% rebound within 2-6 h after the session."
+
+[citations.S2]
+ref = "Rybak MJ, Le J, Lodise TP, Levine DP, Bradley JS, Liu C, et al. Therapeutic monitoring of vancomycin for serious methicillin-resistant Staphylococcus aureus infections: a revised consensus guideline and review. Am J Health-Syst Pharm. 2020;77(11):835-864."
+doi = "10.1093/ajhp/zxaa036"
+note = "AUC24/MIC 400-600 (MIC 1 mg/L), loading dose 25-30 mg/kg actual body weight, maintenance 15-20 mg/kg q8-12h, AUC-guided monitoring preferred over trough-only."
+
+[provenance]
+curator = "precision-dose curation (pending pharmacist validation)"
+curated_on = "2026-11-13"
+reviewed_against = [
+  "S1 Table 2 (fixed effects, IIV, residual error)",
+  "S2 recommendation statements on target, loading and monitoring",
+]
+known_gaps = [
+  "The source model found no body-weight effect on V1 or V2 (its cohort was 86% between 40 and 70 kg). For BMI > 35 the peak concentration is less reliable; the engine emits W_MODEL_NO_WEIGHT_V.",
+  "CL has no non-renal intercept in this model, so at very low CrCl the model may under-predict clearance. A model with an explicit non-renal component (e.g. Matzke 1984) is a candidate replacement at curation review.",
+  "Protein binding (~50%) is not modelled because the guideline targets are total concentrations; free-vancomycin targets are not supported.",
+]

@@ -1,0 +1,157 @@
+# Lithium — purely renal, narrow therapeutic index, dialysable.
+#
+# Lithium is handled in mmol of Li+ (not mg of salt), because the therapeutic
+# range and every published level are in mmol/L. Product salt factors convert
+# tablets to mmol so the numbers a pharmacist checks are the numbers in the
+# guideline.
+
+schema_version = "1.0"
+drug = "lithium"
+display_name = "Lithium"
+drug_class = "mood_stabiliser"
+entry_version = "2026.11.1"
+status = "resolved"
+decision_basis = "pk_target"
+
+[model]
+structure = "one_compartment"
+route_default = "oral"
+amount_unit = "mmol"
+concentration_unit = "mmol/L"
+concentration_matrix = "serum"
+parameterization = "explicit"
+requires = []
+ka_per_h = 1.2
+lag_h = 0.5
+f = 0.95
+# 300 mg lithium carbonate = 8.12 mmol Li+ = 300/8.12 mg per mmol
+mass_per_unit_mg = 36.9458
+
+# CL(Li) = 0.235 x CrCl, with both in the same volume/time unit. At CrCl
+# 100 mL/min this is 23.5 mL/min = 1.41 L/h.
+cl_ref = 1.410
+# Vd = 0.8 L/kg of ideal body weight (EXTRIP working group: 48 L women,
+# 60 L men at reference size).
+v1_ref = 56.000
+
+[model.sources]
+cl_ref = "S1"
+v1_ref = "S2"
+ka_per_h = "S3"
+lag_h = "S3"
+iiv = "S3"
+residual = "S3"
+
+[model.scaling]
+renal_metric = "crcl_cg_total"
+renal_reference = 100.0
+cl_renal_exponent = 1.0
+fraction_renal_clearance = 1.0
+cl_weight_exponent = 0.0
+v_weight_exponent = 1.0
+v_weight_metric = "ibw"
+hepatic_applies = false
+
+[model.ddi]
+renal = 1.0
+
+[model.iiv]
+cl_cv_percent = 22.0
+v1_cv_percent = 20.0
+correlation_cl_v1 = 0.0
+source = "S3"
+
+[model.residual]
+type = "proportional"
+cv_percent = 10.0
+sd = 0.0
+source = "S3"
+
+# 300 mg lithium carbonate = 8.12 mmol Li+; 450 mg extended-release = 12.18 mmol.
+[[products]]
+name = "tablet 300 mg lithium carbonate"
+amount = 8.12
+salt_factor = 1.0
+unit_note = "8.12 mmol Li+"
+
+[[products]]
+name = "tablet 450 mg lithium carbonate ER"
+amount = 12.18
+salt_factor = 1.0
+unit_note = "12.18 mmol Li+"
+
+[[targets]]
+id = "maintenance_trough_12h"
+metric = "conc_at"
+at_h = 12.0
+unit = "mmol/L"
+low = 0.60
+high = 0.80
+matrix = "serum"
+default = true
+source = "S4"
+note = "Maintenance target, sample 12 h after the dose. The 12-h timepoint is the standard monitoring convention, not the trough of a 24-h interval, and the engine evaluates it as such."
+
+[[targets]]
+id = "acute_mania_trough_12h"
+metric = "conc_at"
+at_h = 12.0
+unit = "mmol/L"
+low = 0.80
+high = 1.00
+matrix = "serum"
+default = false
+source = "S4"
+note = "Acute mania loading phase. Higher exposure is used briefly and with closer monitoring."
+
+[[safety]]
+id = "toxicity"
+metric = "conc_at"
+at_h = 12.0
+threshold = 1.20
+direction = "above"
+source = "S4"
+note = "Levels above 1.2 mmol/L carry tremor, ataxia, confusion and, above 2.0, seizures. Toxicity is also driven by sodium status, dehydration and interacting drugs (NSAIDs, thiazides, ACE inhibitors)."
+
+[constraints]
+max_single_dose = 24.36
+max_daily_dose = 48.72
+min_interval_h = 12.0
+allowed_intervals = [12, 24]
+dose_step = 4.06
+loading_mg_per_kg = 0.0
+infusion_options = []
+
+[monitoring]
+tdm_strategy = "12h_level"
+sampling = "12 h after the last dose, at steady state (5 days after initiation or a dose change), before the next dose"
+
+[citations.S1]
+ref = "Pepin P, Pickup S, Duffull SB. Lithium clearance is related to estimated creatinine clearance: CL(Li) = 0.235 x CrCl. Cited in: ASHP therapeutic position statement and Applied Therapeutics drug dosing in renal impairment."
+doi = ""
+note = "Lithium is cleared entirely by the kidney; clearance tracks CrCl with a ratio of about 0.235 because of proximal tubular reabsorption."
+
+[citations.S2]
+ref = "Decker BS, Goldfarb DS, Dargan PI, Friesen M, Gosselin S, Hoffman RS, et al. EXTRIP workgroup recommendations on the treatment of lithium poisoning. Clin Toxicol. 2015;53(2):85-93."
+doi = "10.3109/15563650.2014.990978"
+note = "Vd 0.8 L/kg ideal body weight (48 L women, 60 L men); lithium is small and unbound, so it is efficiently dialysed."
+
+[citations.S3]
+ref = "Modelling assumption (documented, unvalidated) — absorption rate, lag time, IIV and residual error. See provenance.known_gaps."
+doi = ""
+note = "Bounded by tests in tests/test_assumptions.py: a 24-h trough and the 12-h level are insensitive to ka in the 0.8-3.0 /h range to within 2%."
+
+[citations.S4]
+ref = "Lithium carbonate US prescribing information; NICE CG185 (bipolar disorder) and APA practice guideline: serum lithium 0.6-0.8 mmol/L maintenance, 0.8-1.0 mmol/L acute mania, 12 h post-dose sampling."
+doi = ""
+note = "Target ranges and sampling convention."
+
+[provenance]
+curator = "precision-dose curation (pending pharmacist validation)"
+curated_on = "2026-11-13"
+reviewed_against = ["S1 clearance relation", "S2 Vd and dialysability", "S4 target ranges and 12-h sampling"]
+known_gaps = [
+  "IIV, ka and lag are assumptions, not estimates; they widen the PTA but do not move the point recommendation.",
+  "The model does not represent sodium/volume status, which is the main determinant of lithium reabsorption in practice; a low-sodium state or a thiazide will raise levels beyond what this model predicts (thiazides are not in the DDI library yet).",
+  "Haemodialysis removes lithium efficiently, but this entry does not declare an intradialytic clearance, so the engine refuses lithium dosing in dialysis patients rather than guessing.",
+]

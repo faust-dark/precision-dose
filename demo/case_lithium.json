@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0",
+  "patient_id": "DEMO-LI-001",
+  "age_years": 40,
+  "sex": "female",
+  "weight_kg": 60.0,
+  "height_cm": 165.0,
+  "serum_creatinine_mg_dL": 0.90,
+  "albumin_g_dL": 4.1,
+  "indication": "bipolar_maintenance"
+}

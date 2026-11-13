@@ -1,0 +1,133 @@
+# Apixaban — label-criteria decision, not a clearance-driven one.
+#
+# This entry exists to make a point: not every drug is dosed by a target
+# exposure. Apixaban's dose in nonvalvular atrial fibrillation is set by three
+# patient criteria and by interaction class, not by estimating CL. Reporting a
+# CL-derived regimen here would be a category error, so PK is deliberately not
+# modelled and the engine says so.
+
+schema_version = "1.0"
+drug = "apixaban"
+display_name = "Apixaban"
+drug_class = "direct_oral_anticoagulant"
+entry_version = "2026.11.1"
+status = "resolved"
+decision_basis = "label_criteria"
+
+# No exposure target exists for this drug: the dose is set by label criteria.
+targets = []
+
+[model]
+structure = "none"
+route_default = "oral"
+amount_unit = "mg"
+concentration_unit = "ng/mL"
+concentration_matrix = "plasma"
+parameterization = "not_modelled"
+requires = []
+f = 1.0
+
+# No exposure target exists for this drug: the dose is set by criteria below.
+targets = []
+
+[model.sources]
+
+[[products]]
+name = "tablet 2.5 mg"
+amount = 2.5
+salt_factor = 1.0
+
+[[products]]
+name = "tablet 5 mg"
+amount = 5.0
+salt_factor = 1.0
+
+[[label_rules]]
+id = "dose_reduction_two_of_three"
+type = "count_criteria"
+threshold = 2
+action = "reduce"
+dose = 2.5
+interval_h = 12
+route = "oral"
+label = "2.5 mg twice daily"
+source = "S1"
+note = "Reduce to 2.5 mg BID when at least two of: age >= 80 y, body weight <= 60 kg, serum creatinine >= 1.5 mg/dL."
+criteria = [
+  { field = "age_years", op = "ge", value = 80.0 },
+  { field = "weight_kg", op = "le", value = 60.0 },
+  { field = "serum_creatinine_mg_dL", op = "ge", value = 1.5 },
+]
+
+[[label_rules]]
+id = "strong_dual_inhibitor"
+type = "co_medication_class"
+class = "strong_dual_cyp3a4_pgp_inhibitor"
+action = "reduce"
+dose = 2.5
+interval_h = 12
+route = "oral"
+label = "2.5 mg twice daily"
+source = "S1"
+note = "With a strong dual CYP3A4 and P-gp inhibitor, reduce to 2.5 mg BID; if the patient already meets criteria for 2.5 mg BID, avoid concomitant use."
+
+[[label_rules]]
+id = "strong_dual_inducer"
+type = "co_medication_class"
+class = "strong_dual_cyp3a4_pgp_inducer"
+action = "avoid"
+route = "oral"
+label = "avoid concomitant use"
+source = "S1"
+
+[[label_rules]]
+id = "child_pugh_c"
+type = "child_pugh_class"
+class = "C"
+action = "not_recommended"
+label = "not recommended in severe hepatic impairment (Child-Pugh C)"
+source = "S1"
+
+[[label_rules]]
+id = "default"
+type = "default"
+action = "full_dose"
+dose = 5.0
+interval_h = 12
+route = "oral"
+label = "5 mg twice daily"
+source = "S1"
+
+[[safety]]
+id = "bleeding_risk"
+metric = "none"
+threshold = 0.0
+direction = "none"
+source = "S1"
+note = "No concentration threshold is used. Bleeding risk is clinical (HAS-BLED, renal function, interacting drugs); the tool therefore reports criteria and interactions rather than a Cmax margin."
+
+[constraints]
+max_single_dose = 5.0
+max_daily_dose = 10.0
+min_interval_h = 12.0
+allowed_intervals = [12]
+dose_step = 2.5
+
+[monitoring]
+tdm_strategy = "none"
+sampling = "no routine concentration monitoring; assess adherence, renal function, weight and interacting drugs at each review"
+
+[citations.S1]
+ref = "Eliquis (apixaban) US prescribing information. Bristol-Myers Squibb / Pfizer. Sections 2.1 (dose reduction criteria), 7 (drug interactions), 8.7 (hepatic impairment)."
+doi = ""
+note = "Criteria transcribed from the label: >= 2 of age >= 80, weight <= 60 kg, SCr >= 1.5 mg/dL; strong dual CYP3A4/P-gp inhibitors or inducers; Child-Pugh C not recommended."
+
+[provenance]
+curator = "precision-dose curation (pending pharmacist validation)"
+curated_on = "2026-11-13"
+reviewed_against = ["S1 sections 2.1, 7, 8.7"]
+known_gaps = [
+  "PK is not modelled: the decision is criteria-based. No concentration-time curve, PTA or Cmax safety margin is produced for this drug, by design.",
+  "Indication coverage is nonvalvular atrial fibrillation only; VTE treatment and post-orthopaedic prophylaxis have different dose rules and are not encoded.",
+  "Strong-inhibitor interaction is encoded as a class rule; the class membership list lives in interactions.toml and is curated.",
+]

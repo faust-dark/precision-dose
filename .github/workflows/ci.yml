@@ -1,0 +1,33 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: install
+        run: pip install -e .
+      - name: unit and property tests
+        run: python -m unittest discover -s tests -t . -v
+      - name: library integrity
+        run: precision-dose library validate
+      - name: published-regimen validation
+        run: precision-dose validate
+      - name: determinism (two runs must hash identically)
+        run: |
+          precision-dose dose --patient demo/case_vanc.json --drug vancomycin \
+            --pta-n 500 --out /tmp/a.json --quiet
+          precision-dose dose --patient demo/case_vanc.json --drug vancomycin \
+            --pta-n 500 --out /tmp/b.json --quiet
+          cmp /tmp/a.json /tmp/b.json

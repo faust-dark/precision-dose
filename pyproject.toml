@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "precision-dose"
+version = "0.1.0"
+description = "Deterministic, mechanistic model-informed precision dosing (MIPD) for one patient at a time"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "precision-dose contributors" }]
+keywords = [
+  "precision-medicine", "clinical-pharmacology", "pharmacokinetics",
+  "therapeutic-drug-monitoring", "mipd", "bayesian-dosing", "pharmacometrics",
+  "population-pk", "pharmacogenomics", "clinical-decision-support",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Healthcare Industry",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "numpy>=1.24", "scipy>=1.10"]
+
+[project.scripts]
+precision-dose = "precision_dose.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/precision_dose"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

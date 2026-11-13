@@ -1,0 +1,26 @@
+{
+  "id": "phenytoin_michaelis_menten",
+  "description": "Phenytoin dosed to the 10-20 mg/L range with capacity-limited kinetics; CYP2C9 *1/*2 scales Vmax by 0.75, reproducing the CPIC 25% reduction logic mechanistically",
+  "citation": "Grasela TH et al. Clin Pharmacokinet 1983;8:355-364; CPIC CYP2C9-phenytoin guideline",
+  "source_verified": true,
+  "drug": "phenytoin",
+  "target": "total_10_20",
+  "pta_n": 600,
+  "patient": {
+    "schema_version": "1.0",
+    "age_years": 55,
+    "sex": "male",
+    "weight_kg": 80.0,
+    "height_cm": 176.0,
+    "serum_creatinine_mg_dL": 0.95,
+    "albumin_g_dL": 3.2,
+    "genotypes": {"CYP2C9": "*1/*2"},
+    "indication": "focal_epilepsy"
+  },
+  "checks": [
+    {"path": "exposure.css_avg", "op": "between", "value": [10, 20]},
+    {"path": "parameters.values.vmax", "op": "approx", "value": 337.2, "tolerance": 3.0,
+     "note": "415 * (80/70)^0.6 * 0.75 = 337.2 mg/day"},
+    {"path": "parameters.values.km", "op": "approx", "value": 5.7, "tolerance": 1e-6}
+  ]
+}

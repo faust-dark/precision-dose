@@ -1,0 +1,202 @@
+# Tacrolimus — whole-blood trough target, CYP3A5 genotype aware.
+# Structure: one-compartment with first-order absorption; CL/F and V/F are
+# apparent values (F folded in), which is the usual popPK convention for a drug
+# monitored after oral dosing.
+
+schema_version = "1.0"
+drug = "tacrolimus"
+display_name = "Tacrolimus"
+drug_class = "calcineurin_inhibitor"
+entry_version = "2026.11.1"
+status = "resolved"
+decision_basis = "pk_target"
+
+[model]
+structure = "one_compartment"
+route_default = "oral"
+amount_unit = "mg"
+concentration_unit = "ng/mL"
+concentration_factor = 1000.0   # model works in mg and L; blood levels are reported per mL
+concentration_matrix = "whole_blood"
+parameterization = "apparent"
+requires = ["days_post_transplant"]
+ka_per_h = 4.5
+lag_h = 0.0
+
+# Passey 2011 final model constant. CL/F = 38.4 x phase(days) x genotype x
+# (age/50)^-0.4 x CCB. The constant is the reference; the phase multiplier is
+# applied per patient from days_post_transplant.
+cl_ref = 38.400         # L/h, apparent
+v1_ref = 333.000        # L, apparent (V/F)
+f = 1.0
+
+[model.sources]
+cl_ref = "S1"
+v1_ref = "S2"
+ka_per_h = "S4"
+iiv = "S4"
+residual = "S4"
+
+[model.scaling]
+renal_metric = "crcl_cg_total"
+renal_reference = 100.0
+cl_renal_exponent = 0.0        # tacrolimus clearance is hepatic, not renal
+fraction_renal_clearance = 0.01
+cl_weight_exponent = 0.0
+v_weight_exponent = 0.0
+v1_age_exponent = -0.4
+v1_age_reference = 50.0
+hepatic_applies = true
+hepatic_multiplier_A = 1.00
+hepatic_multiplier_B = 0.75
+hepatic_multiplier_C = 0.50
+hepatic_note = "CYP3A4 activity falls with hepatic impairment; the multipliers are a modelling assumption bounded by the range reported for Child-Pugh B/C in transplant cohorts. Curator validation required."
+
+# Post-transplant phase multipliers (Passey 2011: 0.86 at days 6-10, 0.71 at
+# days 11-180; the model's reference is the immediate post-operative period).
+[model.scaling.phase_days]
+bounds = [0, 5, 10, 180, 3650]
+multipliers = [1.00, 0.86, 0.71, 0.71]
+
+[model.pgx]
+gene = "CYP3A5"
+target = "cl"
+mode = "diplotype_multipliers"
+source = "S1"
+
+[model.pgx.multipliers]
+"*3/*3" = 1.00
+"*3/*6" = 1.00
+"*3/*7" = 1.00
+"*1/*3" = 1.69
+"*1/*6" = 1.69
+"*1/*1" = 2.00
+
+# Fraction of clearance attributable to each pathway: used by the DDI engine and
+# by the attribution breakdown. CYP3A5 is counted with CYP3A4 because the two
+# share substrates and inhibitors; renal excretion is ~1%.
+[model.ddi]
+CYP3A4 = 0.94
+CYP3A5 = 0.05
+renal = 0.01
+
+[model.iiv]
+cl_cv_percent = 35.00
+v1_cv_percent = 40.00
+correlation_cl_v1 = 0.0
+source = "S4"
+
+[model.residual]
+type = "combined"
+cv_percent = 15.0
+sd = 0.5
+source = "S4"
+
+[[products]]
+name = "capsule 0.5 mg"
+amount = 0.5
+salt_factor = 1.0
+
+[[products]]
+name = "capsule 1 mg"
+amount = 1.0
+salt_factor = 1.0
+
+[[products]]
+name = "capsule 2 mg"
+amount = 2.0
+salt_factor = 1.0
+
+[[products]]
+name = "capsule 5 mg"
+amount = 5.0
+salt_factor = 1.0
+
+[[targets]]
+id = "trough_early"
+metric = "trough"
+unit = "ng/mL"
+low = 10.0
+high = 15.0
+matrix = "whole_blood"
+default = true
+applies_from_day = 0
+applies_to_day = 90
+source = "S3"
+note = "Early post-transplant maintenance (0-3 months) for kidney transplant recipients in a standard triple regimen."
+
+[[targets]]
+id = "trough_mid"
+metric = "trough"
+unit = "ng/mL"
+low = 7.0
+high = 10.0
+matrix = "whole_blood"
+default = false
+applies_from_day = 90
+applies_to_day = 365
+source = "S3"
+
+[[targets]]
+id = "trough_late"
+metric = "trough"
+unit = "ng/mL"
+low = 5.0
+high = 7.0
+matrix = "whole_blood"
+default = false
+applies_from_day = 365
+applies_to_day = 3650
+source = "S3"
+
+[[safety]]
+id = "trough_toxicity"
+metric = "trough"
+threshold = 20.0
+direction = "above"
+source = "S3"
+note = "Sustained troughs above ~20 ng/mL carry nephrotoxicity and neurotoxicity risk; the ceiling is a monitoring trigger, not a hard stop."
+
+[constraints]
+max_single_dose = 10.0
+max_daily_dose = 20.0
+min_interval_h = 8.0
+allowed_intervals = [12]
+dose_step = 0.5
+loading_mg_per_kg = 0.0
+infusion_options = []
+
+[monitoring]
+tdm_strategy = "trough"
+sampling = "whole-blood trough 12 h after the evening dose, at steady state (>= 3-5 days after a dose change)"
+
+[citations.S1]
+ref = "Passey C, Birnbaum AK, Brundage RC, Oetting WS, Israni AK, Jacobson PA. Dosing equation for tacrolimus using genetic variants and clinical factors. Br J Clin Pharmacol. 2011;72(6):948-957."
+doi = "10.1111/j.1365-2125.2011.04039.x"
+note = "CL/F (L/h) = 38.4 x [0.86 if day 6-10, 0.71 if day 11-180] x [1.69 if CYP3A5*1/*3, 2.00 if *1/*1] x [0.70 if steroid-sparing centre] x (age/50)^-0.4 x [0.94 if CCB]. 681 kidney recipients, 11 823 troughs."
+
+[citations.S2]
+ref = "Vadcharavivad S, Praisuwan S, Techawathanawanna N, Prommool S, Praditpornsilpa K, Prasongsukarn K, et al. Population pharmacokinetics of tacrolimus in Thai kidney transplant patients. J Clin Pharm Ther. 2016;41(6):691-698."
+doi = "10.1111/jcpt.12448"
+note = "One-compartment model; CL/F 21.5 L/h (95% CI 18.4-24.3) and V/F 333 L (95% CI 223-484) in adult kidney recipients. V/F is taken from this model because the Passey model estimates CL/F only."
+
+[citations.S3]
+ref = "KDIGO. Clinical practice guideline for the care of kidney transplant recipients. Am J Transplant. 2009;9(Suppl 3):S1-S155."
+doi = "10.1111/j.1600-6143.2009.02834.x"
+note = "Phase-based tacrolimus trough targets for kidney transplant recipients."
+
+[citations.S4]
+ref = "Modelling assumption (documented, unvalidated) — see provenance.known_gaps."
+doi = ""
+note = "Absorption rate constant, IIV magnitudes and residual error are assumptions because the cited models do not publish them in a form that can be transcribed. They are bounded by tests in tests/test_assumptions.py."
+
+[provenance]
+curator = "precision-dose curation (pending pharmacist validation)"
+curated_on = "2026-11-13"
+reviewed_against = ["S1 equation and genotype groups", "S2 V/F estimate", "S3 trough ranges"]
+known_gaps = [
+  "IIV (CL 35%, V 40%) and the residual error are assumptions, not estimates from S1; they change PTA width, not the point recommendation.",
+  "V/F is taken from a different cohort (S2) than CL/F (S1): the Passey model did not publish V. This is a deliberate curation choice and is the most fragile number in the entry.",
+  "Immediate-release capsules only. Extended-release formulations need a cited input-rate model and are refused.",
+  "The steroid-sparing-centre multiplier (0.70) is a centre effect, not a patient covariate, and is not applied.",
+]

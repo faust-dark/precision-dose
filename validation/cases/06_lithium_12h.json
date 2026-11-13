@@ -1,0 +1,26 @@
+{
+  "id": "lithium_12h_level",
+  "description": "Lithium dosed to the 0.6-0.8 mmol/L maintenance range sampled 12 h after the dose, with clearance scaled from Cockcroft-Gault by the published 0.235 relation",
+  "citation": "Lithium carbonate prescribing information; NICE CG185; CL(Li) = 0.235 x CrCl",
+  "source_verified": true,
+  "drug": "lithium",
+  "target": "maintenance_trough_12h",
+  "pta_n": 600,
+  "patient": {
+    "schema_version": "1.0",
+    "age_years": 40,
+    "sex": "female",
+    "weight_kg": 60.0,
+    "height_cm": 165.0,
+    "serum_creatinine_mg_dL": 0.90,
+    "albumin_g_dL": 4.1,
+    "indication": "bipolar_maintenance"
+  },
+  "checks": [
+    {"path": "safety.0.predicted", "op": "between", "value": [0.60, 0.80],
+     "note": "the 12 h level, not a 24 h trough"},
+    {"path": "parameters.values.v1", "op": "between", "value": [40, 55],
+     "note": "0.8 L/kg of ideal body weight"},
+    {"path": "exposure.auc24", "op": "between", "value": [10, 25]}
+  ]
+}

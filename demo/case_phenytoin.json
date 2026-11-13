@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "patient_id": "DEMO-PHT-001",
+  "age_years": 55,
+  "sex": "male",
+  "weight_kg": 80.0,
+  "height_cm": 176.0,
+  "serum_creatinine_mg_dL": 0.95,
+  "albumin_g_dL": 3.2,
+  "genotypes": {"CYP2C9": "*1/*2"},
+  "indication": "focal_epilepsy"
+}

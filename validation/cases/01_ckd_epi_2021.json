@@ -1,0 +1,22 @@
+{
+  "id": "ckd_epi_2021_reference_case",
+  "description": "CKD-EPI 2021 race-free eGFR reproduced for a 60-year-old man with SCr 1.0 mg/dL",
+  "citation": "Inker LA et al. New creatinine- and cystatin C-based equations to estimate GFR without race. NEJM 2021;385:1737-49",
+  "source_verified": true,
+  "drug": "vancomycin",
+  "ptan": 200,
+  "pta_n": 200,
+  "patient": {
+    "schema_version": "1.0",
+    "age_years": 60,
+    "sex": "male",
+    "weight_kg": 70.0,
+    "height_cm": 175.0,
+    "serum_creatinine_mg_dL": 1.0
+  },
+  "checks": [
+    {"path": "patient.derived.egfr_ckd_epi_2021_mL_min_1_73m2.value", "op": "approx", "value": 86.19, "tolerance": 0.1,
+     "note": "142*0.88125*0.68876 = 86.19, computed by hand from the published equation"},
+    {"path": "patient.derived.egfr_ckd_epi_2021_mL_min_1_73m2.formula", "op": "eq", "value": "F_EGFR_CKDEPI2021"}
+  ]
+}

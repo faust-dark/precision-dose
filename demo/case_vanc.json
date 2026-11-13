@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "patient_id": "DEMO-VANC-001",
+  "age_years": 68,
+  "sex": "male",
+  "weight_kg": 78.0,
+  "height_cm": 172.0,
+  "serum_creatinine_mg_dL": 1.9,
+  "creatinine_assay": "enzymatic",
+  "creatinine_stable": true,
+  "albumin_g_dL": 2.8,
+  "hepatic": {
+    "child_pugh_components": {
+      "bilirubin_mg_dL": 1.4,
+      "inr": 1.2,
+      "ascites": "none",
+      "encephalopathy": "none"
+    }
+  },
+  "genotypes": {},
+  "co_medications": [],
+  "indication": "mrsa_bacteremia",
+  "mic_mg_L": 1.0
+}

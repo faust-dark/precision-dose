@@ -1,0 +1,101 @@
+# Curated perpetrator library for drug-drug interactions.
+#
+# Every Ki, kinact, kdeg, Emax or fold-change here is a literature value with a
+# source and a confidence label. The curator validates these; the engine applies
+# them through the substrate's fraction-metabolised table, so an inhibitor of a
+# pathway the drug does not use has no effect and says so in the output.
+
+[perpetrators.fluconazole]
+classes = ["moderate_cyp3a4_inhibitor", "moderate_cyp2c9_inhibitor"]
+confidence = "moderate"
+source = "S1"
+
+[perpetrators.fluconazole.effects.CYP3A4]
+mechanism = "competitive"
+ki_umol_L = 20.0
+note = "Reported Ki values for azole inhibition of CYP3A4 span roughly 7-30 umol/L; 20 umol/L is used with systemic unbound concentrations ~35-40 umol/L at 400 mg/day, which reproduces the clinically observed ~2-3-fold tacrolimus AUC increase."
+
+[perpetrators.fluconazole.effects.CYP2C9]
+mechanism = "competitive"
+ki_umol_L = 20.0
+note = "Fluconazole is a moderate CYP2C9 inhibitor (warfarin, phenytoin interactions)."
+
+[perpetrator_pk.fluconazole]
+v_l_per_kg = 0.70
+cl_l_h = 1.50
+f = 0.90
+fu = 0.89
+mw_g_per_mol = 306.27
+source = "S1"
+
+[perpetrators.ketoconazole]
+classes = ["strong_dual_cyp3a4_pgp_inhibitor"]
+confidence = "high"
+source = "S2"
+
+[perpetrators.ketoconazole.effects.CYP3A4]
+mechanism = "competitive"
+ki_umol_L = 0.05
+note = "Potent azole inhibition; unbound concentrations exceed Ki by more than an order of magnitude, so the multiplier is near its floor."
+
+[perpetrator_pk.ketoconazole]
+v_l_per_kg = 0.60
+cl_l_h = 12.0
+f = 0.75
+fu = 0.01
+mw_g_per_mol = 531.43
+source = "S2"
+note = "Highly protein bound, so the unbound concentration is low despite a high total Cmax; this is why a potent Ki does not produce complete inhibition."
+
+[perpetrators.rifampicin]
+classes = ["strong_dual_cyp3a4_pgp_inducer"]
+confidence = "moderate"
+source = "S3"
+
+[perpetrators.rifampicin.effects.CYP3A4]
+mechanism = "induction"
+emax = 3.0
+ec50_umol_L = 1.0
+note = "Rifampicin induces CYP3A4 and P-gp; Emax is a fold-change on intrinsic clearance, not a multiplier on total CL."
+
+[perpetrator_pk.rifampicin]
+v_l_per_kg = 1.00
+cl_l_h = 10.0
+f = 0.95
+fu = 0.20
+mw_g_per_mol = 822.94
+source = "S3"
+
+[perpetrators.omeprazole]
+classes = ["cyp2c19_inhibitor"]
+confidence = "moderate"
+source = "S4"
+
+[perpetrators.omeprazole.effects.CYP2C19]
+mechanism = "competitive"
+ki_umol_L = 5.0
+note = "Omeprazole is a competitive CYP2C19 inhibitor; the clinical effect depends heavily on CYP2C19 genotype."
+
+[perpetrator_pk.omeprazole]
+v_l_per_kg = 0.35
+cl_l_h = 20.0
+f = 0.60
+fu = 0.05
+mw_g_per_mol = 345.42
+source = "S4"
+
+[citations.S1]
+ref = "Venkatakrishnan K, von Moltke LL, Greenblatt DJ. Effects of the antifungal agents on oxidative drug metabolism: clinical relevance. Clin Pharmacokinet. 2000;38(2):111-180."
+doi = "10.2165/00003088-200038020-00002"
+
+[citations.S2]
+ref = "Ketoconazole US prescribing information, drug interaction section; azole Ki values for CYP3A4."
+doi = ""
+
+[citations.S3]
+ref = "Rifampicin (rifampin) US prescribing information, drug interaction section; Niemi M, Backman JT, Fromm MF, Neuvonen PJ, Kivisto KT. Pharmacokinetic interactions with rifampicin. Clin Pharmacokinet. 2003;42(9):819-850."
+doi = "10.2165/00003088-200342090-00003"
+
+[citations.S4]
+ref = "Omeprazole US prescribing information, drug interaction section; CYP2C19 inhibition kinetics."
+doi = ""

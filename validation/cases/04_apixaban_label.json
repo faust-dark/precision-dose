@@ -1,0 +1,44 @@
+{
+  "id": "apixaban_label_dose_reduction",
+  "description": "Two-of-three criteria (age >= 80, weight <= 60 kg, SCr >= 1.5) force 2.5 mg twice daily, and the decision is reported as label-based rather than PK-based",
+  "citation": "Eliquis (apixaban) US prescribing information, section 2.1",
+  "source_verified": true,
+  "drug": "apixaban",
+  "patient": {
+    "schema_version": "1.0",
+    "age_years": 82,
+    "sex": "female",
+    "weight_kg": 58.0,
+    "height_cm": 158.0,
+    "serum_creatinine_mg_dL": 1.6,
+    "indication": "nonvalvular_atrial_fibrillation"
+  },
+  "checks": [
+    {
+      "path": "regimen.dose",
+      "op": "eq",
+      "value": 2.5
+    },
+    {
+      "path": "regimen.interval_h",
+      "op": "eq",
+      "value": 12
+    },
+    {
+      "path": "regimen.decision_basis",
+      "op": "eq",
+      "value": "label_criteria"
+    },
+    {
+      "path": "exposure",
+      "op": "is_null",
+      "value": null,
+      "note": "no PK estimate is produced for a criteria-dosed drug, by design"
+    },
+    {
+      "path": "label_evaluation.0.count",
+      "op": "eq",
+      "value": 3
+    }
+  ]
+}

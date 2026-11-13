@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "doses": [
+    {"dose": 1000, "start_h": 0.0, "infusion_min": 90, "route": "iv"},
+    {"dose": 1000, "start_h": 12.0, "infusion_min": 90, "route": "iv"},
+    {"dose": 1000, "start_h": 24.0, "infusion_min": 90, "route": "iv"}
+  ],
+  "levels": [
+    {"time_h": 26.0, "value": 42.0, "matrix": "serum", "assay": "immunoassay"},
+    {"time_h": 36.0, "value": 28.5, "matrix": "serum", "assay": "immunoassay"}
+  ]
+}

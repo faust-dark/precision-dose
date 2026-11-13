@@ -1,0 +1,163 @@
+# Phenytoin — capacity-limited (Michaelis-Menten) elimination.
+#
+# Phenytoin is the reason a linear model is not enough: at therapeutic
+# concentrations the enzyme is already partly saturated, so a 20% dose increase
+# can double the concentration. The entry therefore parameterises Vmax and Km,
+# and the steady-state target is evaluated from the exact algebraic relation
+# R = Vmax*Css/(Km+Css) rather than approximated by a clearance.
+#
+# Vmax is scaled by body weight to the 0.6 power (Grasela 1983) and by CYP2C9
+# activity score, because Vmax is proportional to enzyme content (this
+# reproduces the CPIC dose guidance as a consequence, not as a lookup table).
+
+schema_version = "1.0"
+drug = "phenytoin"
+display_name = "Phenytoin"
+drug_class = "hydantoin_antiepileptic"
+entry_version = "2026.11.1"
+status = "resolved"
+decision_basis = "pk_target"
+
+[model]
+structure = "michaelis_menten"
+route_default = "oral"
+amount_unit = "mg"
+concentration_unit = "mg/L"
+concentration_matrix = "serum"
+parameterization = "explicit"
+requires = []
+vmax_ref_mg_day = 415.0
+km_mg_L = 5.7
+vd_ref_l_per_kg = 0.70
+f = 1.0
+# Prescribed doses are phenytoin sodium; the model is written in phenytoin acid.
+salt_factor = 0.92
+
+[model.sources]
+vmax_ref_mg_day = "S1"
+km_mg_L = "S1"
+vd_ref_l_per_kg = "S2"
+iiv = "S2"
+residual = "S2"
+
+[model.scaling]
+renal_metric = "crcl_cg_total"
+renal_reference = 100.0
+cl_renal_exponent = 0.0
+fraction_renal_clearance = 0.02
+vmax_weight_exponent = 0.6
+cl_weight_exponent = 0.0
+v_weight_exponent = 1.0
+v_weight_metric = "total"
+hepatic_applies = false
+hepatic_note = "Phenytoin clearance falls with hepatic impairment, but no per-drug Child-Pugh multiplier is published; the entry declares no multiplier rather than inventing one. Use free-phenytoin monitoring."
+
+[model.pgx]
+gene = "CYP2C9"
+target = "vmax"
+mode = "activity_ratio"
+source = "S3"
+
+[model.ddi]
+CYP2C9 = 0.90
+CYP2C19 = 0.08
+renal = 0.02
+
+[model.iiv]
+vmax_cv_percent = 30.0
+km_cv_percent = 50.0
+vd_cv_percent = 20.0
+correlation_cl_v1 = 0.0
+source = "S2"
+
+[model.residual]
+type = "proportional"
+cv_percent = 15.0
+sd = 0.0
+source = "S2"
+
+# Salt factor: 100 mg phenytoin sodium contains 92 mg phenytoin acid. The model
+# is parameterised in phenytoin acid, so salt doses are converted before use.
+[[products]]
+name = "capsule 100 mg phenytoin sodium"
+amount = 100.0
+salt_factor = 0.92
+unit_note = "100 mg sodium salt = 92 mg phenytoin acid"
+
+[[products]]
+name = "capsule 30 mg phenytoin sodium"
+amount = 30.0
+salt_factor = 0.92
+
+[[targets]]
+id = "total_10_20"
+metric = "css_avg"
+unit = "mg/L"
+low = 10.0
+high = 20.0
+matrix = "serum"
+default = true
+source = "S4"
+note = "Total phenytoin. The MM relation here is written in terms of the average steady-state concentration, which is the standard clinical framing for phenytoin."
+
+[[targets]]
+id = "free_1_2"
+metric = "css_free_avg"
+unit = "mg/L"
+low = 1.0
+high = 2.0
+matrix = "serum_free"
+default = false
+source = "S4"
+note = "Free phenytoin, preferred in hypoalbuminaemia, uraemia and critical illness. Requires albumin; the engine refuses if it is missing."
+
+[[safety]]
+id = "toxicity_total"
+metric = "css_avg"
+threshold = 20.0
+direction = "above"
+source = "S4"
+note = "Nystagmus and ataxia typically appear above 20 mg/L and worsen steeply because of saturation."
+
+[constraints]
+max_single_dose = 400.0
+max_daily_dose = 600.0
+min_interval_h = 8.0
+allowed_intervals = [8, 12, 24]
+dose_step = 50.0
+loading_mg_per_kg = 0.0
+infusion_options = []
+
+[monitoring]
+tdm_strategy = "trough"
+sampling = "total phenytoin trough at steady state (7-14 days after a change, longer at high concentrations); free phenytoin if albumin < 3.0 g/dL or renal failure"
+
+[citations.S1]
+ref = "Grasela TH, Sheiner LB, Rambeck B, Boenigk HE, Dunlop A, Mullen PW, et al. Steady-state pharmacokinetics of phenytoin from routinely collected patient data. Clin Pharmacokinet. 1983;8(4):355-364."
+doi = "10.2165/00003088-198308040-00006"
+note = "Vm = 415 mg/day for a 70 kg European adult male, scaled by weight^0.6; Km = 5.7 mg/L for Europeans over 15 y."
+
+[citations.S2]
+ref = "Ludden TM, Allen JP, Valutsky WA, Vicuna AV, Nappi JM, Hoffman SF, et al. Individualization of phenytoin dosage regimens. Clin Pharmacol Ther. 1977;21(3):287-293."
+doi = "10.1002/cpt1977213287"
+note = "V = 0.7 L/kg, F = 0.9-1.0; interindividual CV of Vmax 30% and Km 50% used in Bayesian phenytoin dosing."
+
+[citations.S3]
+ref = "CPIC. Clinical Pharmacogenetics Implementation Consortium guideline for CYP2C9 and HLA-B genotype and phenytoin dosing. Clin Pharmacol Ther. 2014;96(5):542-548 (updated 2020)."
+doi = "10.1038/clpt.2014.159"
+note = "CYP2C9 intermediate metabolisers: 25% dose reduction; poor metabolisers: 50% dose reduction. In this engine the reduction emerges from scaling Vmax by the activity score ratio, which reproduces the guidance for *1/*2 (AS 1.5 -> -25%) and *2/*2 (AS 0.5 -> -50%)."
+
+[citations.S4]
+ref = "Phenytoin (Dilantin) US prescribing information; Sheiner LB, Tozer TN. Clinical Pharmacokinetics: Concepts and Applications. 3rd ed. Williams & Wilkins; 1995 (therapeutic range and Winter-Tozer normalisation)."
+doi = ""
+note = "Total 10-20 mg/L, free 1-2 mg/L; free fraction rises in hypoalbuminaemia and uraemia, so total concentrations under-read toxicity in those patients."
+
+[provenance]
+curator = "precision-dose curation (pending pharmacist validation)"
+curated_on = "2026-11-13"
+reviewed_against = ["S1 Vmax/Km and weight exponent", "S2 V and IIV", "S3 CPIC dose recommendations"]
+known_gaps = [
+  "No Child-Pugh multiplier: phenytoin clearance does fall in cirrhosis but no defensible per-drug multiplier exists, so the entry refuses to apply one and flags it.",
+  "F is set to 1.0 and doses are converted to phenytoin acid via the salt factor; absolute bioavailability of the acid is ~0.9, which is absorbed into Vmax/F.",
+  "The free fraction is computed from albumin only (Winter-Tozer); uraemia, bilirubin and displacement interactions are not modelled beyond the albumin term.",
+]
