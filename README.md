@@ -297,5 +297,6 @@ pharmacology · precision medicine
 
 ## License
 
-MIT. See `LICENSE`. This software is a computational aid, not medical advice, and comes
-with no warranty of fitness for clinical use.
+MIT. See `LICENSE` for the licence and `DISCLAIMER.md` for the clinical scope: this is a
+computational aid for qualified clinicians, not a medical device, and it ships with no
+warranty of fitness for clinical use.

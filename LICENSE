@@ -19,12 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-ADDITIONAL NOTICE
-
-This software performs pharmacokinetic calculations for use by qualified
-clinicians. It is not a medical device, it has not been cleared or approved by
-any regulatory authority, and it must not be used as the sole basis for a
-prescribing decision. Drug library parameters are transcribed from published
-sources and must be validated by the responsible pharmacist or physician
-before clinical use.
