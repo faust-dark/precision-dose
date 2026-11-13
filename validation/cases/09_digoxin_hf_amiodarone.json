@@ -1,0 +1,34 @@
+{
+  "id": "digoxin_heart_failure_amiodarone",
+  "description": "Digoxin in heart failure with amiodarone: the heart-failure switch uses the 20 mL/min non-renal component and the measured P-gp interaction halves clearance, so the dose falls from 125 to 62.5 ug daily",
+  "citation": "Koup JR et al. Clin Pharmacol Ther 1975;18:9-21; Moysey JO et al. Br Med J 1981;282:272; 2021 ESC heart failure guidelines",
+  "source_verified": true,
+  "drug": "digoxin",
+  "target": "trough_hf",
+  "pta_n": 1200,
+  "patient": {
+    "schema_version": "1.0",
+    "patient_id": "VAL-DIG-01",
+    "age_years": 78,
+    "sex": "female",
+    "weight_kg": 60.0,
+    "height_cm": 158.0,
+    "serum_creatinine_mg_dL": 1.4,
+    "albumin_g_dL": 3.6,
+    "comorbidities": ["heart_failure"],
+    "indication": "hfref_with_atrial_fibrillation",
+    "co_medications": [
+      {"name": "amiodarone", "dose_mg": 200, "route": "po", "frequency": "qd", "steady_state": true}
+    ]
+  },
+  "checks": [
+    {"path": "parameters.values.cl", "op": "between", "value": [1.4, 2.4],
+     "note": "(1.303 x 31.4 + 20) mL/min = 61 mL/min = 3.65 L/h, halved by amiodarone to 1.83 L/h"},
+    {"path": "regimen.maintenance.dose", "op": "eq", "value": 62.5},
+    {"path": "exposure.trough", "op": "between", "value": [0.5, 0.9]},
+    {"path": "attribution.cl.additive_component", "op": "approx", "value": 0.60, "tolerance": 0.05,
+     "note": "20 mL/min = 1.2 L/h, halved by the amiodarone fold to 0.60"},
+    {"path": "regimen.loading.dose", "op": "approx", "value": 625.0, "tolerance": 0.01,
+     "note": "10 ug/kg x 60 kg, rounded to the 62.5 ug tablet step"}
+  ]
+}

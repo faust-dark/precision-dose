@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "patient_id": "DEMO-DIG-001",
+  "age_years": 78,
+  "sex": "female",
+  "weight_kg": 60.0,
+  "height_cm": 158.0,
+  "serum_creatinine_mg_dL": 1.4,
+  "creatinine_stable": true,
+  "albumin_g_dL": 3.6,
+  "comorbidities": ["heart_failure"],
+  "indication": "hfref_with_atrial_fibrillation",
+  "co_medications": [
+    {"name": "furosemide", "dose_mg": 40, "frequency": "qd", "route": "po"}
+  ]
+}

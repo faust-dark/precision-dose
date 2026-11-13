@@ -77,6 +77,20 @@ def map_estimate(entry, params, dosing_doc):
     obs = [l["value"] for l in levels]
 
     warnings = []
+    min_time = ((entry.get("monitoring") or {}).get("level_min_time_h")) or 0.0
+    for l in levels:
+        for start, _, dur, _ in doses:
+            elapsed = l["time_h"] - (start + dur)
+            if 0.0 <= elapsed < float(min_time):
+                warnings.append(
+                    {
+                        "code": "W_LEVEL_TOO_EARLY",
+                        "message": f"a level {elapsed:.1f} h after the end of an infusion is "
+                        f"inside this drug's distribution phase ({min_time:g} h): the "
+                        "concentration over-reads the steady state and the fit will "
+                        "under-estimate clearance.",
+                    }
+                )
     for l in levels:
         for start, _, dur, _ in doses:
             if 0.0 <= l["time_h"] - (start + dur) < 0.5:

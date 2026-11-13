@@ -31,9 +31,13 @@ echo "=== 5. lithium, 12-hour level ==="
 "$PD" dose --patient demo/case_lithium.json --drug lithium --out demo/out_lithium.json
 
 echo
-echo "=== 6. Bayesian TDM: levels that came back higher than predicted ==="
+echo "=== 6. digoxin, heart failure with renal impairment ==="
+"$PD" dose --patient demo/case_digoxin.json --drug digoxin --out demo/out_digoxin.json
+
+echo
+echo "=== 7. Bayesian TDM: levels that came back higher than predicted ==="
 "$PD" tdm --patient demo/case_vanc.json --drug vancomycin --levels demo/levels_vanc.json
 
 echo
-echo "=== 7. validation suite ==="
+echo "=== 8. validation suite ==="
 "$PD" validate

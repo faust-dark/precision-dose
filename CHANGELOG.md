@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.2.0 — 2026-11-13
+
+### Added
+- **Digoxin**, the sixth drug and the first with a comorbidity-dependent parameter.
+  Clearance uses the Koup/Jusko relation, CL = 1.303*CrCl + non-renal, where the
+  non-renal term is 41 mL/min without heart failure and 20 mL/min with it. That switch
+  is a first-class engine concept (`cl_nonrenal_by_comorbidity`), driven by a patient
+  `comorbidities` list with a controlled vocabulary.
+- Amiodarone in the interaction table as a measured P-gp clearance ratio (0.50), from a
+  doubled digoxin concentration at an unchanged dose. The empirical fold is now gated on
+  the substrate declaring that pathway, so amiodarone cannot silently change the
+  clearance of a drug that does not use P-gp.
+- `monitoring.level_min_time_h`: an entry declares how long after a dose a level must be
+  drawn, and the TDM command warns when a supplied level falls inside the distribution
+  phase (digoxin: 6 h).
+- Loading doses declared in the entry's own amount unit (`loading_per_kg`), so oral
+  microgram drugs can use the same mechanism as intravenous milligram drugs.
+
+### Fixed
+- The loading-dose line printed "mg/kg" regardless of the entry's unit and printed
+  "over None min" for an oral loading dose.
+
+### Notes
+- Digoxin is honestly a composition: clearance and volume from the Koup/Jusko dosing
+  method, variability and absorption from a Korean inpatient popPK model. Sixteen
+  published popPK models disagree, and none provides a validated CrCl relation, a
+  defensible volume and usable variability together. The trade-off is stated in the
+  entry's `known_gaps` rather than hidden.
+
 ## 0.1.1 — 2026-11-13
 
 Library revision: the four numbers flagged at 0.1.0 as thin are replaced with

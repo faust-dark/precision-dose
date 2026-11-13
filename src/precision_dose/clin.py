@@ -163,6 +163,14 @@ def validate_patient(raw):
             }
         )
     p["co_medications"] = cleaned
+
+    # Comorbidities are a small controlled vocabulary, not free text: an entry may
+    # change a parameter on one of them (digoxin's non-renal clearance is 20 mL/min
+    # in heart failure and 41 mL/min without it).
+    comorb = raw.get("comorbidities") or []
+    if not isinstance(comorb, list):
+        raise EngineError(E_SCHEMA, "comorbidities must be a list of strings")
+    p["comorbidities"] = [str(c).strip().lower() for c in comorb]
     return p
 
 

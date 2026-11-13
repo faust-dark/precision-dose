@@ -90,12 +90,14 @@ def rationale(result, entry, patient, derived, attrib):
     reg = result["regimen"]
     load = reg.get("loading")
     m = reg["maintenance"]
-    reg_txt = (
-        f"Regimen: loading {load['dose']:g} {load['unit']} over "
-        f"{load['infusion_min']} min ({load['mg_per_kg']:g} mg/kg of {load['weight_metric']}), "
-        if load
-        else "Regimen: "
-    )
+    if load:
+        reg_txt = (
+            f"Regimen: loading {load['dose']:g} {load['unit']}"
+            + (f" over {load['infusion_min']} min" if load.get("infusion_min") else "")
+            + f" ({load['per_kg']:g} {load['per_kg_unit']}/kg of {load['weight_metric']}), "
+        )
+    else:
+        reg_txt = "Regimen: "
     reg_txt += (
         f"maintenance {m['dose']:g} {m['unit']}"
         + (

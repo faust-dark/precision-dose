@@ -218,15 +218,16 @@ formatting.
 
 ## The drug library
 
-Five entries, each chosen to exercise a different mechanism:
+Six entries, each chosen to exercise a different mechanism:
 
 | drug | mechanism exercised | decision basis |
 | --- | --- | --- |
-| vancomycin | two-compartment, renal scaling, AUC24/MIC target | PK target |
-| tacrolimus | hepatic CYP3A4/3A5, whole-blood trough, azole DDI | PK target |
+| vancomycin | two-compartment, renal scaling with a non-renal intercept, AUC24/MIC target | PK target |
+| tacrolimus | hepatic CYP3A4/3A5, whole-blood trough, measured azole DDI | PK target |
 | apixaban | label criteria, not clearance | label criteria |
 | phenytoin | Michaelis-Menten saturation, CYP2C9, salt factor | PK target |
 | lithium | purely renal, mmol units, 12-h monitoring level | PK target |
+| digoxin | renal clearance with a heart-failure-dependent non-renal term, P-gp interaction, 6-h sampling window | PK target |
 
 `apixaban` is included deliberately: its dose is set by three patient criteria and an
 interaction class, not by a target exposure, so the tool reports criteria and refuses to
@@ -255,10 +256,11 @@ phenytoin_michaelis_menten         PASS       3/3    ok
 lithium_12h_level                  PASS       3/3    ok
 tacrolimus_cyp3a5_and_azole_ddi    PASS       4/4    ok
 paediatric_refusal                 PASS       0/0    E_AGE_OUT_OF_SCOPE
-8/8 cases passed
+digoxin_heart_failure_amiodarone   PASS       5/5    ok
+9/9 cases passed
 ```
 
-Plus 83 unit and property tests: analytic PK oracles, mass balance, monotonicity (AUC in
+Plus 89 unit and property tests: analytic PK oracles, mass balance, monotonicity (AUC in
 dose, CL in renal function, CL in inhibitor strength, V in weight), Bayesian parameter
 recovery, determinism, no-network, and the edge cases (dialysis, severe hepatic
 impairment, obesity, age 19 and 95, missing height, anuria).

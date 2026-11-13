@@ -1,0 +1,192 @@
+# Digoxin — renal clearance with a heart-failure-dependent non-renal component.
+#
+# Digoxin is the clearest case in this library where the clinical dosing method
+# and the population models disagree about what matters. Sixteen published popPK
+# models exist; the ones with the best covariate structure report CL/F without a
+# defensible volume, and the ones that report a volume are fitted to troughs
+# only. The clinical standard is the Koup/Jusko relation, which is what every
+# digoxin nomogram is built on and which is explicit about the two things that
+# drive exposure: creatinine clearance, and whether the patient has heart
+# failure. That relation is used here, with a published volume and published
+# variability, and the composition is declared in provenance.
+
+schema_version = "1.0"
+drug = "digoxin"
+display_name = "Digoxin"
+drug_class = "cardiac_glycoside"
+entry_version = "2026.11.1"
+status = "resolved"
+decision_basis = "pk_target"
+
+[model]
+structure = "one_compartment"
+route_default = "oral"
+amount_unit = "ug"
+concentration_unit = "ng/mL"
+concentration_factor = 1.0      # ug/L is ng/mL
+concentration_matrix = "serum"
+parameterization = "explicit"
+requires = []
+
+ka_per_h = 1.63
+lag_h = 0.0
+f = 0.60                        # tablet bioavailability, as assumed by the Koup/Jusko method
+
+# CL = 1.303 x CrCl (mL/min) + non-renal. At CrCl 100 the renal part is
+# 130.3 mL/min = 7.818 L/h.
+cl_ref = 7.818
+v1_ref = 455.000                # L at 70 kg: 226 L/1.73 m2 x (70/1.73)
+f_default = 0.60
+
+[model.sources]
+cl_ref = "S1"
+v1_ref = "S2"
+ka_per_h = "S3"
+f = "S2"
+iiv = "S3"
+residual = "S3"
+
+[model.scaling]
+renal_metric = "crcl_cg_total"
+renal_reference = 100.0
+cl_renal_exponent = 1.0
+fraction_renal_clearance = 0.70
+cl_weight_exponent = 0.0
+v_weight_exponent = 1.0
+v_weight_metric = "total"
+
+# The non-renal component is 41 mL/min without heart failure and 20 mL/min with
+# it (S1). Heart failure reduces both renal and non-renal clearance, so it is a
+# comorbidity switch on this term rather than a multiplier on the whole model.
+cl_nonrenal_l_h = 2.46          # 41 mL/min
+[model.scaling.cl_nonrenal_by_comorbidity]
+heart_failure = 1.20            # 20 mL/min
+
+hepatic_applies = false
+
+# Digoxin is not metabolised by CYPs: it is a P-glycoprotein substrate. Declaring
+# the P-gp component is what allows the amiodarone interaction to apply at all;
+# the magnitude is a measured clearance ratio, not a Ki extrapolation.
+[model.ddi]
+PGP = 1.00
+
+[model.iiv]
+cl_cv_percent = 34.3
+v1_cv_percent = 0.0
+correlation_cl_v1 = 0.0
+source = "S3"
+
+[model.residual]
+type = "additive"
+cv_percent = 0.0
+sd = 0.225
+source = "S3"
+note = "residual standard deviation 0.225 ug/L (0.225 ng/mL) from S3"
+
+[[products]]
+name = "tablet 62.5 ug"
+amount = 62.5
+salt_factor = 1.0
+
+[[products]]
+name = "tablet 125 ug"
+amount = 125.0
+salt_factor = 1.0
+
+[[products]]
+name = "tablet 250 ug"
+amount = 250.0
+salt_factor = 1.0
+
+[[targets]]
+id = "trough_hf"
+metric = "trough"
+unit = "ng/mL"
+low = 0.5
+high = 0.9
+matrix = "serum"
+default = true
+source = "S4"
+note = "Heart failure target. Levels above 0.9 ng/mL are associated with increased mortality in HFrEF; the DIG trial's benefit sat in the 0.5-0.9 range. Sample at least 6 h after a dose, at steady state."
+
+[[targets]]
+id = "trough_af"
+metric = "trough"
+unit = "ng/mL"
+low = 0.5
+high = 1.0
+matrix = "serum"
+default = false
+source = "S5"
+note = "Rate control in atrial fibrillation; levels above 1.2 ng/mL are associated with harm and are avoided."
+
+[[safety]]
+id = "toxicity"
+metric = "trough"
+threshold = 2.0
+direction = "above"
+source = "S6"
+note = "Classic toxicity threshold. Risk is raised by hypokalaemia, hypomagnesaemia, hypercalcaemia and renal impairment at any given level, so 2.0 ng/mL is a ceiling for the assay, not a safety boundary for the patient."
+
+[constraints]
+max_single_dose = 250.0
+max_daily_dose = 250.0
+min_interval_h = 12.0
+allowed_intervals = [24]
+preferred_interval_h = 24
+dose_step = 62.5
+loading_per_kg = 10.0
+loading_weight_metric = "total"
+loading_max = 1250.0
+infusion_options = []
+
+[monitoring]
+tdm_strategy = "trough"
+level_min_time_h = 6.0
+sampling = "serum trough at least 6 h after a dose (8-12 h is better), at steady state: 7 days after starting or changing a dose in normal renal function, longer when CrCl is low"
+
+[citations.S1]
+ref = "Koup JR, Jusko WJ, Elwood CM, Kohli RK. Digoxin pharmacokinetics: role of renal failure in dosage regimen design. Clin Pharmacol Ther. 1975;18(1):9-21."
+doi = "10.1002/cpt19751819"
+note = "CL (mL/min) = 1.303 x CrCl + non-renal, with the non-renal term 41 mL/min without heart failure and 20 mL/min with it. The basis of the Jusko/Koup dosing nomogram."
+
+[citations.S2]
+ref = "ASHP therapeutic compendium, digoxin monograph: estimation of digoxin clearance and volume of distribution; Vd 226 L/1.73 m2, F assumed 0.60."
+doi = ""
+note = "Reproduces the Koup/Jusko equations verbatim, including the heart-failure-dependent non-renal term and the BSA-based volume of distribution."
+
+[citations.S3]
+ref = "Kim KS, et al. A population pharmacokinetic analysis of the influence of nutritional status of digoxin in hospitalized Korean patients. Clin Ther. 2014;36(3):389-400."
+doi = "10.1016/j.clinthera.2014.01.019"
+note = "106 inpatients, one-compartment popPK: IIV of CL/F 34.3%, residual SD 0.225 ug/L, ka 1.63/h. Used here for variability and absorption, not for the clearance relation."
+
+[citations.S4]
+ref = "McDonagh TA, Metra M, Adamo M, et al. 2021 ESC Guidelines for the diagnosis and treatment of acute and chronic heart failure. Eur Heart J. 2021;42(36):3599-3726 (digoxin section)."
+doi = "10.1093/eurheartj/ehab368"
+note = "Maintenance digoxin 0.125-0.25 mg daily in HFrEF, target serum concentration 0.5-0.9 ng/mL, sampled at least 6 h after dosing."
+
+[citations.S5]
+ref = "Joglar JA, Chung MK, Armbruster AL, et al. 2023 ACC/AHA/ACCP/HRS guideline for the diagnosis and management of atrial fibrillation. Circulation. 2024;149(1):e1-e156."
+doi = "10.1161/CIR.0000000000001193"
+note = "Digoxin for rate control: keep the level below 1.2 ng/mL; levels above that are associated with increased mortality."
+
+[citations.S6]
+ref = "Digoxin (Lanoxin) US prescribing information: overdose and serum concentration monitoring."
+doi = ""
+note = "Serum concentrations above 2.0 ng/mL are associated with toxicity, with substantial overlap and marked sensitivity to potassium, magnesium and renal function."
+
+[provenance]
+curator = "precision-dose curation (pending pharmacist validation)"
+curated_on = "2026-11-13"
+reviewed_against = [
+  "S1 clearance relation and the heart-failure non-renal term",
+  "S2 volume of distribution and bioavailability",
+  "S4/S5 target ranges and sampling time",
+]
+known_gaps = [
+  "Composition: clearance structure from S1/S2, volume from S2, variability and absorption from S3 (a Korean inpatient cohort). No single published model provides a validated CrCl relation, a defensible volume and usable variability together; this composition is the deliberate choice, and S3's variability is a borrowed estimate.",
+  "Between-subject variability in volume is not modelled (V IIV set to 0). Trough-only fits report 90%+ IIV for V/F, which is shrinkage rather than physiology, so an invented number was rejected. The consequence is that the predicted peak is over-confident and the trough distribution is slightly narrower than reality.",
+  "The heart-failure switch applies only when the patient declares \"heart_failure\" in comorbidities; without it, the 41 mL/min non-renal component is used and clearance is over-estimated by about 1.3 L/h.",
+  "Levels drawn less than 6 h after a dose sit in the distribution phase and over-read the steady state; the TDM command warns when a supplied level is inside that window.",
+  "Amiodarone is modelled as a P-gp-mediated clearance ratio (see interactions.toml). Verapamil, quinidine and clarithromycin act the same way but are not yet in the interaction table.",
+]

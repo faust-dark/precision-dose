@@ -124,7 +124,18 @@ def evaluate(patient, fm_by_pathway, interactions, warnings):
         for pathway, effect in effects.items():
             if effect.get("mechanism") == "empirical_fold":
                 # a measured in vivo clearance ratio for the whole drug: applying it
-                # through fm would double count the pathway
+                # through fm would double count the pathway. The drug must still
+                # declare that the pathway matters, or the interaction does not apply.
+                if fm_by_pathway.get(pathway, 0.0) <= 0:
+                    contributions.append(
+                        {
+                            "perpetrator": name,
+                            "pathway": pathway,
+                            "applied": False,
+                            "reason": "the drug does not declare this pathway",
+                        }
+                    )
+                    continue
                 fold = float(effect["cl_fold"])
                 multiplier *= fold
                 contributions.append(

@@ -23,10 +23,10 @@ class TestBundledLibrary(unittest.TestCase):
     def test_no_invalid_entries(self):
         self.assertEqual(self.problems, {})
 
-    def test_all_five_drugs_present(self):
+    def test_all_six_drugs_present(self):
         self.assertEqual(
             sorted(self.lib),
-            ["apixaban", "lithium", "phenytoin", "tacrolimus", "vancomycin"],
+            ["apixaban", "digoxin", "lithium", "phenytoin", "tacrolimus", "vancomycin"],
         )
 
     def test_every_entry_has_citations_and_provenance(self):

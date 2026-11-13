@@ -297,6 +297,11 @@ def individualize(entry, patient, derived, interactions, warnings):
             * f_scr
         )
         cl_nonrenal = float(scaling.get("cl_nonrenal_l_h", 0.0) or 0.0)
+        for flag, value in (scaling.get("cl_nonrenal_by_comorbidity") or {}).items():
+            if flag in (patient.get("comorbidities") or []):
+                cl_nonrenal = float(value)
+                add("comorbidity", f"{flag} present", 1.0)  # recorded, not a multiplier
+                break
         # the published renal relation may carry an intercept (Matzke 1984):
         # CL = a*CrCl + b, with b an absolute non-renal term, not a multiplier
         params["cl"] = (cl_renal_part + cl_nonrenal) * f_ddi
@@ -1115,7 +1120,7 @@ def _curve(ev, points, entry):
 
 def _loading(entry, patient, derived, warnings):
     c = entry.get("constraints") or {}
-    per_kg = c.get("loading_mg_per_kg") or 0.0
+    per_kg = c.get("loading_per_kg") or c.get("loading_mg_per_kg") or 0.0
     if per_kg <= 0:
         return None
     w, label = _weight(patient, derived, c.get("loading_weight_metric", "total"), warnings)
@@ -1125,7 +1130,8 @@ def _loading(entry, patient, derived, warnings):
     return {
         "dose": dose,
         "unit": entry["model"]["amount_unit"],
-        "mg_per_kg": per_kg,
+        "per_kg": per_kg,
+        "per_kg_unit": entry["model"]["amount_unit"],
         "weight_kg": round(w, 2),
         "weight_metric": label,
         "infusion_min": c.get("loading_infusion_min"),

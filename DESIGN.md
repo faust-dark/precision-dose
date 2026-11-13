@@ -836,3 +836,25 @@ Two design commitments were adjusted to keep the provenance honest: additive ter
 reported as additive (rather than forced into the multiplicative decomposition), and
 regimens with identical PTA and identical daily dose are separated by the interval the
 guideline actually writes, declared per entry.
+
+### Sixth drug (v0.2.0)
+
+**Digoxin** was added because it exercises a distinction none of the first five did: a
+parameter that changes with a *comorbidity* rather than with a continuous covariate.
+Koup/Jusko give CL = 1.303*CrCl + non-renal, with the non-renal term 41 mL/min without
+heart failure and 20 mL/min with it — the same patient, one flag, a 25% difference in
+clearance. That is now `cl_nonrenal_by_comorbidity`, driven by a controlled
+`comorbidities` vocabulary on the patient.
+
+Two smaller additions came with it: `monitoring.level_min_time_h`, because a digoxin
+level drawn before 6 h sits in the distribution phase and over-reads (the TDM command
+warns), and `loading_per_kg` in the entry's own amount unit, because digoxin is dosed in
+micrograms. The amiodarone interaction is a measured clearance ratio (0.50) and is gated
+on the substrate declaring P-gp, so it cannot silently change the clearance of a drug
+that does not use that transporter.
+
+Digoxin is the one entry in the library that is openly a composition — clearance and
+volume from the Koup/Jusko method, variability and absorption from a Korean inpatient
+popPK model — because sixteen published models disagree and none combines a validated
+CrCl relation with a defensible volume and usable variability. That trade-off is in
+`known_gaps`, where the person dosing the patient will read it.
