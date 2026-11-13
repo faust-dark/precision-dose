@@ -1,96 +1,124 @@
-# Tacrolimus — whole-blood trough target, CYP3A5 genotype aware.
-# Structure: one-compartment with first-order absorption; CL/F and V/F are
-# apparent values (F folded in), which is the usual popPK convention for a drug
-# monitored after oral dosing.
+# Tacrolimus — whole-blood trough target, CYP3A5/CYP3A4 genotype aware.
+#
+# Single source: Andrews et al. 2019, a two-compartment population model built
+# from 4527 whole-blood samples in 337 adult kidney recipients, which publishes
+# CL/F, V1/F, V2/F, Q/F, ka, tlag, IIV for every parameter, the residual error
+# model, and the genotype covariates. Nothing here is borrowed from a second
+# cohort: the previous build mixed a CL/F equation from one model with a V/F from
+# another, which is the fragility this entry was rewritten to remove.
 
 schema_version = "1.0"
 drug = "tacrolimus"
 display_name = "Tacrolimus"
 drug_class = "calcineurin_inhibitor"
-entry_version = "2026.11.1"
+entry_version = "2026.11.2"
 status = "resolved"
 decision_basis = "pk_target"
 
 [model]
-structure = "one_compartment"
+structure = "two_compartment"
 route_default = "oral"
 amount_unit = "mg"
 concentration_unit = "ng/mL"
-concentration_factor = 1000.0   # model works in mg and L; blood levels are reported per mL
+concentration_factor = 1000.0   # the model works in mg and L
 concentration_matrix = "whole_blood"
 parameterization = "apparent"
-requires = ["days_post_transplant"]
-ka_per_h = 4.5
-lag_h = 0.0
+# BSA needs height; albumin and haematocrit are covariates of this model and it
+# has no population default for either, so they are required rather than assumed.
+requires = ["bsa_m2", "albumin_g_dL", "hematocrit_percent"]
 
-# Passey 2011 final model constant. CL/F = 38.4 x phase(days) x genotype x
-# (age/50)^-0.4 x CCB. The constant is the reference; the phase multiplier is
-# applied per patient from days_post_transplant.
-cl_ref = 38.400         # L/h, apparent
-v1_ref = 333.000        # L, apparent (V/F)
+ka_per_h = 3.58
+lag_h = 0.38
+
+cl_ref = 23.000        # L/h apparent, at age 56, BSA 1.93, alb 42 g/L, SCr 135 umol/L, Hct 0.34
+v1_ref = 692.000       # L
+v2_ref = 5340.000      # L
+q_ref = 11.600         # L/h
 f = 1.0
 
 [model.sources]
 cl_ref = "S1"
-v1_ref = "S2"
-ka_per_h = "S4"
-iiv = "S4"
-residual = "S4"
+v1_ref = "S1"
+v2_ref = "S1"
+q_ref = "S1"
+ka_per_h = "S1"
+lag_h = "S1"
+iiv = "S1"
+residual = "S1"
 
 [model.scaling]
 renal_metric = "crcl_cg_total"
 renal_reference = 100.0
-cl_renal_exponent = 0.0        # tacrolimus clearance is hepatic, not renal
+cl_renal_exponent = 0.0        # tacrolimus clearance is hepatic
 fraction_renal_clearance = 0.01
 cl_weight_exponent = 0.0
 v_weight_exponent = 0.0
-v1_age_exponent = -0.4
-v1_age_reference = 50.0
+v_weight_metric = "total"
+cl_age_exponent = -0.43
+cl_age_reference = 56.0
+
+# Continuous covariates from the published equation (Equation 1 of S1).
+cl_bsa_exponent = 0.88
+bsa_reference = 1.93
+cl_albumin_exponent = 0.43
+albumin_reference_g_L = 42.0
+cl_hematocrit_exponent = -0.76
+hematocrit_reference = 0.34
+cl_creatinine_exponent = -0.14
+creatinine_reference_umol_L = 135.0
+
 hepatic_applies = true
 hepatic_multiplier_A = 1.00
 hepatic_multiplier_B = 0.75
 hepatic_multiplier_C = 0.50
-hepatic_note = "CYP3A4 activity falls with hepatic impairment; the multipliers are a modelling assumption bounded by the range reported for Child-Pugh B/C in transplant cohorts. Curator validation required."
+hepatic_note = "S1 does not model hepatic impairment. CYP3A4 activity falls with cirrhosis, so a per-class multiplier is applied as a declared assumption (S4) rather than defaulting Child-Pugh C to no effect; the magnitude is bounded and the curator should replace it with a cited value."
 
-# Post-transplant phase multipliers (Passey 2011: 0.86 at days 6-10, 0.71 at
-# days 11-180; the model's reference is the immediate post-operative period).
-[model.scaling.phase_days]
-bounds = [0, 5, 10, 180, 3650]
-multipliers = [1.00, 0.86, 0.71, 0.71]
-
-[model.pgx]
+[[model.pgx]]
 gene = "CYP3A5"
 target = "cl"
 mode = "diplotype_multipliers"
 source = "S1"
+note = "S1 found no difference between *1/*3 and *1/*1: any *1 carrier has 1.63x the CL/F of a *3/*3 patient."
 
 [model.pgx.multipliers]
 "*3/*3" = 1.00
 "*3/*6" = 1.00
 "*3/*7" = 1.00
-"*1/*3" = 1.69
-"*1/*6" = 1.69
-"*1/*1" = 2.00
+"*1/*3" = 1.63
+"*1/*6" = 1.63
+"*1/*1" = 1.63
 
-# Fraction of clearance attributable to each pathway: used by the DDI engine and
-# by the attribution breakdown. CYP3A5 is counted with CYP3A4 because the two
-# share substrates and inhibitors; renal excretion is ~1%.
+[[model.pgx]]
+gene = "CYP3A4"
+target = "cl"
+mode = "diplotype_multipliers"
+source = "S1"
+note = "CYP3A4*22 carriers have 0.80x the CL/F. Most patients are not genotyped for CYP3A4; an absent genotype uses the population average and says so."
+
+[model.pgx.multipliers]
+"*1/*1" = 1.00
+"*1/*22" = 0.80
+"*22/*22" = 0.80
+
 [model.ddi]
 CYP3A4 = 0.94
 CYP3A5 = 0.05
 renal = 0.01
 
 [model.iiv]
-cl_cv_percent = 35.00
-v1_cv_percent = 40.00
+cl_cv_percent = 38.6
+v1_cv_percent = 49.2
+v2_cv_percent = 53.0
+q_cv_percent = 78.7
 correlation_cl_v1 = 0.0
-source = "S4"
+source = "S1"
 
 [model.residual]
 type = "combined"
-cv_percent = 15.0
-sd = 0.5
-source = "S4"
+cv_percent = 17.7
+sd = 0.88
+source = "S1"
+note = "proportional 17.7% plus additive 0.88 ng/mL, as estimated for the immunoassay component of S1"
 
 [[products]]
 name = "capsule 0.5 mg"
@@ -122,8 +150,8 @@ matrix = "whole_blood"
 default = true
 applies_from_day = 0
 applies_to_day = 90
-source = "S3"
-note = "Early post-transplant maintenance (0-3 months) for kidney transplant recipients in a standard triple regimen."
+source = "S2"
+note = "Early post-transplant maintenance (0-3 months) for kidney transplant recipients on a standard triple regimen."
 
 [[targets]]
 id = "trough_mid"
@@ -135,7 +163,7 @@ matrix = "whole_blood"
 default = false
 applies_from_day = 90
 applies_to_day = 365
-source = "S3"
+source = "S2"
 
 [[targets]]
 id = "trough_late"
@@ -147,14 +175,14 @@ matrix = "whole_blood"
 default = false
 applies_from_day = 365
 applies_to_day = 3650
-source = "S3"
+source = "S2"
 
 [[safety]]
 id = "trough_toxicity"
 metric = "trough"
 threshold = 20.0
 direction = "above"
-source = "S3"
+source = "S2"
 note = "Sustained troughs above ~20 ng/mL carry nephrotoxicity and neurotoxicity risk; the ceiling is a monitoring trigger, not a hard stop."
 
 [constraints]
@@ -171,32 +199,31 @@ tdm_strategy = "trough"
 sampling = "whole-blood trough 12 h after the evening dose, at steady state (>= 3-5 days after a dose change)"
 
 [citations.S1]
-ref = "Passey C, Birnbaum AK, Brundage RC, Oetting WS, Israni AK, Jacobson PA. Dosing equation for tacrolimus using genetic variants and clinical factors. Br J Clin Pharmacol. 2011;72(6):948-957."
-doi = "10.1111/j.1365-2125.2011.04039.x"
-note = "CL/F (L/h) = 38.4 x [0.86 if day 6-10, 0.71 if day 11-180] x [1.69 if CYP3A5*1/*3, 2.00 if *1/*1] x [0.70 if steroid-sparing centre] x (age/50)^-0.4 x [0.94 if CCB]. 681 kidney recipients, 11 823 troughs."
+ref = "Andrews LM, Hesselink DA, van Schaik RHN, van Gelder T, de Fijter JW, Lloberas N, Elens L, Moes DJAR, de Winter BCM, et al. A population pharmacokinetic model to predict the individual starting dose of tacrolimus in adult renal transplant recipients. Br J Clin Pharmacol. 2019;85(3):601-615."
+doi = "10.1111/bcp.13838"
+note = "Two-compartment model, 4527 samples from 337 adult kidney recipients over the first 3 months. CL/F 23.0 L/h (IIV 38.6%), V1/F 692 L (49.2%), V2/F 5340 L (53.0%), Q/F 11.6 L/h (78.7%), ka 3.58/h, tlag 0.38 h. CL/F covariates: CYP3A5*1 1.63, CYP3A4*22 0.80, age^-0.43, albumin^0.43, BSA^0.88, creatinine^-0.14, haematocrit^-0.76. Residual: 17.7% proportional plus 0.88 ug/L additive for the immunoassay."
 
 [citations.S2]
-ref = "Vadcharavivad S, Praisuwan S, Techawathanawanna N, Prommool S, Praditpornsilpa K, Prasongsukarn K, et al. Population pharmacokinetics of tacrolimus in Thai kidney transplant patients. J Clin Pharm Ther. 2016;41(6):691-698."
-doi = "10.1111/jcpt.12448"
-note = "One-compartment model; CL/F 21.5 L/h (95% CI 18.4-24.3) and V/F 333 L (95% CI 223-484) in adult kidney recipients. V/F is taken from this model because the Passey model estimates CL/F only."
-
-[citations.S3]
 ref = "KDIGO. Clinical practice guideline for the care of kidney transplant recipients. Am J Transplant. 2009;9(Suppl 3):S1-S155."
 doi = "10.1111/j.1600-6143.2009.02834.x"
 note = "Phase-based tacrolimus trough targets for kidney transplant recipients."
 
 [citations.S4]
-ref = "Modelling assumption (documented, unvalidated) — see provenance.known_gaps."
+ref = "Modelling assumption (documented, unvalidated): Child-Pugh multipliers for tacrolimus."
 doi = ""
-note = "Absorption rate constant, IIV magnitudes and residual error are assumptions because the cited models do not publish them in a form that can be transcribed. They are bounded by tests in tests/test_assumptions.py."
+note = "S1 does not model hepatic impairment. B=0.75 and C=0.50 are bounded assumptions so that cirrhosis is not silently treated as normal hepatic function; replace with a cited value at curation review."
 
 [provenance]
 curator = "precision-dose curation (pending pharmacist validation)"
 curated_on = "2026-11-13"
-reviewed_against = ["S1 equation and genotype groups", "S2 V/F estimate", "S3 trough ranges"]
+reviewed_against = [
+  "S1 Table 2 (all fixed effects, IIV, residual error, covariate exponents)",
+  "S2 trough ranges by post-transplant phase",
+]
 known_gaps = [
-  "IIV (CL 35%, V 40%) and the residual error are assumptions, not estimates from S1; they change PTA width, not the point recommendation.",
-  "V/F is taken from a different cohort (S2) than CL/F (S1): the Passey model did not publish V. This is a deliberate curation choice and is the most fragile number in the entry.",
-  "Immediate-release capsules only. Extended-release formulations need a cited input-rate model and are refused.",
-  "The steroid-sparing-centre multiplier (0.70) is a centre effect, not a patient covariate, and is not applied.",
+  "V2/F is 5340 L with 39% shrinkage: it is a sink fitted to trough data, not a measured peripheral volume. The terminal half-life implied by it is not clinically interpretable, so the engine reports the accumulation-based effective half-life over the dosing interval instead.",
+  "The lean-body-weight effect on V1/F (exponent 1.52 in S1) is not applied because the reference value is not stated in the published equation; V1/F is therefore 692 L for every patient, which understates volume variability in very small or very large recipients. CL, the dose-determining parameter, is fully individualised.",
+  "CYP3A4*22 is applied only when genotyped; an ungenotyped patient is dosed as *1/*1 and the output says so, so *22 carriers are over-dosed by about 25% until genotyped.",
+  "Extended-release formulations are not modelled; they need a cited input-rate model and are refused.",
+  "S1 studied the first 3 months post-transplant; extrapolation beyond 1 year is outside the model's validation window.",
 ]

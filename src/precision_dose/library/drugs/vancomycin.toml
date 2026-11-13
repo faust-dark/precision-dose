@@ -7,7 +7,7 @@ schema_version = "1.0"
 drug = "vancomycin"
 display_name = "Vancomycin"
 drug_class = "glycopeptide"
-entry_version = "2026.11.1"
+entry_version = "2026.11.2"
 status = "resolved"
 decision_basis = "pk_target"
 
@@ -23,7 +23,7 @@ requires = []
 # Reference individual of the source model: CL is proportional to Cockcroft-
 # Gault CrCl; V1 is proportional to age (the model found no weight effect on
 # volume, which is a known limitation for obesity — see provenance.known_gaps).
-cl_ref = 4.400        # L/h at CrCl 100 mL/min  (= 0.044 x 100)
+cl_ref = 4.400        # L/h at CrCl 100 mL/min  (= 0.044 x 100), renal component only
 v1_ref = 37.940       # L at age 70 y          (= 0.542 x 70)
 v2_ref = 44.200       # L
 q_ref = 6.950         # L/h
@@ -42,6 +42,10 @@ renal_metric = "crcl_cg_total"
 renal_reference = 100.0
 cl_renal_exponent = 1.0
 fraction_renal_clearance = 0.85
+# S1's model has no non-renal clearance term, which under-predicts CL badly at
+# low CrCl. S2 measured the intercept directly: CL = 3.66 + 0.689*CrCl (mL/min),
+# so 3.66 mL/min = 0.2196 L/h is added as an absolute, non-renal component.
+cl_nonrenal_l_h = 0.2196
 cl_weight_exponent = 0.0
 v_weight_exponent = 0.0
 v1_age_exponent = 1.0
@@ -118,6 +122,9 @@ max_single_dose = 3000.0
 max_daily_dose = 4500.0
 min_interval_h = 6.0
 allowed_intervals = [8, 12, 24, 48]
+# the guideline writes q8-12h; 12 h is the conventional default and breaks ties
+# between regimens that reach the same AUC with the same daily dose
+preferred_interval_h = 12
 dose_step = 250.0
 loading_mg_per_kg = 25.0
 loading_weight_metric = "total"
@@ -135,6 +142,11 @@ ref = "Purwonugroho TA, Chulavatnatol S, Preechagoon Y, Chindavijak B, Malathum 
 doi = "10.1100/2012/762649"
 note = "Two-compartment model; CL = 0.044 x CrCl(CG), V1 = 0.542 x age, Q = 6.95 L/h, V2 = 44.2 L; IIV 35.8/20.9/39.5/57.3%; additive residual 4.51 mg/L."
 
+[citations.S4]
+ref = "Matzke GR, McGory RW, Halstenson CE, Keane WF. Pharmacokinetics of vancomycin in patients with various degrees of renal function. Antimicrob Agents Chemother. 1984;25(4):433-437."
+doi = "10.1128/aac.25.4.433"
+note = "56 adults across three renal-function strata, monoexponential decay: CL (mL/min) = 3.66 + 0.689 x CrCl (r = 0.88); Vss 0.72-0.90 L/kg, with no relation to CrCl. Only the intercept is taken from this source, because S1's popPK model lacks one."
+
 [citations.S3]
 ref = "Pollard TA, Lampasona V, Akkerman S, Tom K, Hooks M, Mullins R, Marbury T. Vancomycin redistribution: dosing recommendations following high-flux hemodialysis. Kidney Int. 1994;45(1):232-237; and Decker BS et al. EXTRIP recommendations on lithium poisoning, Clin Toxicol 2015 (dialysis clearance methodology)."
 doi = "10.1038/ki.1994.28"
@@ -151,9 +163,10 @@ curated_on = "2026-11-13"
 reviewed_against = [
   "S1 Table 2 (fixed effects, IIV, residual error)",
   "S2 recommendation statements on target, loading and monitoring",
+  "S4 regression intercept for the non-renal component",
 ]
 known_gaps = [
   "The source model found no body-weight effect on V1 or V2 (its cohort was 86% between 40 and 70 kg). For BMI > 35 the peak concentration is less reliable; the engine emits W_MODEL_NO_WEIGHT_V.",
-  "CL has no non-renal intercept in this model, so at very low CrCl the model may under-predict clearance. A model with an explicit non-renal component (e.g. Matzke 1984) is a candidate replacement at curation review.",
+  "Clearance is a composed relation: the renal part is S1's (0.044 x CrCl, with S1's volume and variability) and a non-renal term of 3.66 mL/min from S2 is added because S1 omitted it. At CrCl 100 the non-renal term is 5% of total CL; at CrCl 10 it is 35%. The composition is reported as a separate additive component in every attribution.",
   "Protein binding (~50%) is not modelled because the guideline targets are total concentrations; free-vancomycin targets are not supported.",
 ]

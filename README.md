@@ -50,42 +50,53 @@ $ precision-dose dose --patient demo/case_vanc.json --drug vancomycin --out regi
 Question: Vancomycin regimen for a 68-year-old male, 78 kg, SCr 1.90 mg/dL, MIC 1.00 mg/L, target auc24_mic (400-600 h).
 Renal function: CKD-EPI 2021 eGFR 38 mL/min/1.73 m2; Cockcroft-Gault CrCl 41 mL/min (TBW), 36 (IBW), 38 (ABW). This entry scales clearance with crcl_cg_total. Discarding one of these in favour of the other is a decision with clinical consequences, which is why both are shown.
 Hepatic: albumin 2.8 g/dL; Child-Pugh class A (score 6); clearance multiplier 1.00 (not applied for this drug).
-Individual parameters: CL 1.81 L/h, V1 36.86 L, V2 44.20 L, Q 6.95 L/h; terminal half-life 33.7 h.
-Clearance: 4.40 -> 1.81 L/h (-59.0%) because renal_crcl_cg_total x0.41 [crcl_cg_total 41.1 vs 100].
+Individual parameters: CL 2.03 L/h, V1 36.86 L, V2 44.20 L, Q 6.95 L/h; half-life 22.7 h (effective over the dosing interval).
+Clearance: 4.40 -> 2.03 L/h (-54.0%) because renal_crcl_cg_total x0.41 [crcl_cg_total 41.1 vs 100]. Of that, 1.81 L/h is the scaled component and 0.22 L/h is the non-renal intercept of the published relation (additive, not a factor).
 Volume: 37.94 -> 36.86 L (-2.9%) because age x0.97 [age 68 y vs 70 y].
 Contributions multiply; do not add the percentages. Log-space residual 0.0e+00 confirms the decomposition is exact.
-Regimen: loading 2000 mg over 120 min (25 mg/kg of total body weight), maintenance 1750 mg every 48 h over 120 min.
-Predicted steady-state exposure: AUC24 484.4 mg/L*h, Cmax 49.14, trough 11.10 mg/L (90% population interval 273.0-872.3).
+Regimen: loading 2000 mg over 120 min (25 mg/kg of total body weight), maintenance 500 mg every 12 h over 120 min.
+Predicted steady-state exposure: AUC24 493.6 mg/L*h, Cmax 26.89, trough 16.77 mg/L (90% population interval 278.2-888.9).
 Probability of target attainment: 43% (95% CI 42-44%, n=5000, seed 20260101). The spread is between-patient variability, not numerical noise.
-Safety: predicted auc24 484.4 vs threshold 600; margin x1.24; P(exceed) 26.7%.
+Safety: predicted auc24 493.6 vs threshold 600; margin x1.22; P(exceed) 29.2%.
 Caveats:
   - no fixed regimen attains auc24_mic in 80% of patients (best 43%): the target window is narrow relative to between-patient variability. This is the quantitative case for therapeutic drug monitoring rather than a reason to widen the target.
 
 TOP CANDIDATES (common random numbers, same seed)
       dose  interval    PTA  median target
-      1750        48  43.0%        483.551
-       500        12  40.3%        552.630
-      1000        24  40.3%        552.630
+       500        12  42.9%        492.728
+      1000        24  42.9%        492.728
+      2000        48  42.9%        492.728
+      1750        48  40.6%        431.137
+      2250        48  40.2%        554.319
+      1250        24  35.9%        615.910
+      2500        48  35.9%        615.910
+       250         8  33.4%        369.546
 ```
 
 Three things in that output are the point of the tool:
 
 - **43% PTA is the honest answer.** A fixed dose cannot put 80% of a population inside a
   400-600 window when clearance varies by 36% CV. The tool says so and names the
-  consequence: TDM, not a wider target. `P(exceed) 26.7%` is the other half of that
+  consequence: TDM, not a wider target. `P(exceed) 29.2%` is the other half of that
   sentence.
 - **CrCl 41 (TBW), 36 (IBW), 38 (ABW)** are all printed because the guidelines disagree
   about which weight to use, and the library declares which one its model was estimated
   against. CKD-EPI 2021 eGFR is shown alongside, because it is the right number for CKD
   staging and the wrong one for most drug labels.
-- **`1750 mg q48h` beats `1000 mg q24h` on PTA** (43.0% vs 40.3%) because it centres the
-  median AUC closer to the middle of the window. The full candidate table is in the JSON,
-  so the choice can be argued with rather than merely trusted.
+- **500 mg q12h, 1000 mg q24h and 2000 mg q48h attain the target equally often** (42.9%
+  each) because they deliver the same 1000 mg/day: exposure is set by the daily dose over
+  clearance, not by the interval. The tool breaks the tie towards the interval closest to
+  the one the guideline actually writes (12 h) and prints the whole table, so the choice
+  can be argued with rather than merely trusted.
+- **Clearance is 1.81 L/h of renal component plus 0.22 L/h of non-renal intercept.** They
+  are reported separately because they combine additively: at CrCl 41 the intercept is 11%
+  of total clearance, and at CrCl 10 it would be 35%. Folding it into a multiplier would
+  have made the log-space attribution a lie.
 
 ### Adding measured levels: Bayesian dose optimisation
 
 Three doses of 1000 mg q12h later, a peak of 42.0 mg/L at 26 h and a trough of 28.5 mg/L
-at 36 h. The population model predicted 39.7 and 27.3; the patient is clearing the drug
+at 36 h. The population model predicted 39.6 and 26.9; the patient is clearing the drug
 more slowly than the covariates suggested.
 
 ```
@@ -93,26 +104,27 @@ $ precision-dose tdm --patient demo/case_vanc.json --drug vancomycin --levels de
 
 BAYESIAN TDM
 ============
-OFV 1.739796; levels 2; converged True
-  CL   prior 1.806 -> posterior 1.382 (CV 17.8947%, information ratio 0.5223)
-  V1   prior 36.856 -> posterior 33.395 (CV 0.5305%, information ratio 0.2836)
-  V2   prior 44.200 -> posterior 27.989 (CV 1.4259%, information ratio 0.5144)
+OFV 2.275223; levels 2; converged True
+  CL   prior 2.026 -> posterior 1.456 (CV 16.1128%, information ratio 0.5703)
+  V1   prior 36.856 -> posterior 33.169 (CV 0.5323%, information ratio 0.2885)
+  V2   prior 44.200 -> posterior 26.804 (CV 1.4981%, information ratio 0.5084)
 
     time  observed  predicted     wres    err %
-   26.00    42.000     39.718     0.51     -5.4
-   36.00    28.500     27.349     0.26     -4.0
+   26.00    42.000     39.586     0.54     -5.8
+   36.00    28.500     26.945     0.34     -5.5
 ...
-Clearance: 4.40 -> 1.38 L/h (-68.6%) because renal_crcl_cg_total x0.41 [crcl_cg_total 41.1 vs 100]; tdm_posterior x0.77 [MAP estimate from the measured levels].
-Regimen: loading 2000 mg over 120 min (25 mg/kg of total body weight), maintenance 1250 mg every 48 h over 120 min.
-Probability of target attainment: 39% (95% CI 37-42%, n=1500, seed 20260101).
+Clearance: 4.40 -> 1.46 L/h (-66.9%) because renal_crcl_cg_total x0.41 [crcl_cg_total 41.1 vs 100]; tdm_posterior x0.81 [MAP estimate from the measured levels]. Of that, 1.24 L/h is the scaled component and 0.22 L/h is the non-renal intercept of the published relation (additive, not a factor).
+Regimen: loading 2000 mg over 120 min (25 mg/kg of total body weight), maintenance 250 mg every 8 h over 120 min.
+Predicted steady-state exposure: AUC24 515.2 mg/L*h, Cmax 24.39, trough 19.24 mg/L (90% population interval 274.7-982.1).
+Probability of target attainment: 39% (95% CI 37-40%, n=5000, seed 20260101). The spread is between-patient variability, not numerical noise.
 ```
 
 The **information ratio** (1 − posterior variance / prior variance) is the number most
-Bayesian tools hide: 0.52 means the two levels moved the clearance estimate about half
+Bayesian tools hide: 0.57 means the two levels moved the clearance estimate about half
 way from the population prior to the truth. It is not a confidence interval pretending
 that two samples are a dataset. The re-dosing PTA then integrates the posterior
 uncertainty as well as between-patient variability, and the attribution folds the
-posterior in as its own exact factor (`tdm_posterior x0.77`) so the breakdown still
+posterior in as its own exact factor (`tdm_posterior x0.81`) so the breakdown still
 multiplies out to the clearance actually used.
 
 ## Install and run

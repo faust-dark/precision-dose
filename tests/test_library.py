@@ -57,8 +57,18 @@ class TestBundledLibrary(unittest.TestCase):
         for name, perp in self.inter["perpetrators"].items():
             self.assertIn(perp["source"], self.inter["citations"], name)
 
-    def test_tacrolimus_requires_days_post_transplant(self):
-        self.assertIn("days_post_transplant", self.lib["tacrolimus"]["model"]["requires"])
+    def test_tacrolimus_requires_its_model_covariates(self):
+        requires = self.lib["tacrolimus"]["model"]["requires"]
+        self.assertIn("bsa_m2", requires)
+        self.assertIn("albumin_g_dL", requires)
+        self.assertIn("hematocrit_percent", requires)
+
+    def test_every_parameter_names_one_model(self):
+        # the tacrolimus entry was rebuilt on Andrews 2019 precisely so that no
+        # parameter is borrowed from a second cohort
+        src = self.lib["tacrolimus"]["model"]["sources"]
+        for param in ("cl_ref", "v1_ref", "v2_ref", "q_ref", "ka_per_h", "iiv", "residual"):
+            self.assertEqual(src[param], "S1", param)
 
 
 class TestValidationContract(unittest.TestCase):

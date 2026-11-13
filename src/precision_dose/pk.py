@@ -251,6 +251,37 @@ class LinearPK:
             "grid_h": grid_h,
         }
 
+    def effective_half_life(self, regimen, points=200):
+        """Accumulation-based effective half-life over the dosing interval.
+
+        For a multi-compartment drug fitted to trough data the terminal phase is
+        often unidentifiable (the peripheral volume is a sink, not a measurement),
+        so the terminal half-life can be a number nobody should act on. The
+        effective half-life is defined from what the model does predict:
+        tau * ln2 / ln(AUC_ss / AUC_single) over one interval.
+        """
+        if regimen.cycle_h <= 0:
+            return None
+        times = [i * regimen.cycle_h / points for i in range(points + 1)]
+        doses = [
+            (t, a, regimen.infusion_h if regimen.route != "oral" else 0.0, regimen.route)
+            for t, a in regimen.doses
+        ]
+        single = self.simulate(doses, times)
+        auc_single = 0.0
+        for (t0, c0), (t1, c1) in zip(single, single[1:]):
+            auc_single += 0.5 * (c0 + c1) * (t1 - t0)
+        ev = self.evaluate(regimen)
+        auc_ss = ev["auc_cycle"]
+        if auc_single <= 0 or auc_ss <= auc_single:
+            return None
+        # accumulation ratio -> half-life of the one-compartment model that would
+        # accumulate identically: t = tau*ln2 / ln(R/(R-1))
+        ratio = auc_ss / auc_single
+        if ratio <= 1.0 + 1e-12:
+            return None
+        return regimen.cycle_h * math.log(2.0) / math.log(ratio / (ratio - 1.0))
+
     def half_life(self):
         if self.v2:
             k10 = self.cl / self.v1

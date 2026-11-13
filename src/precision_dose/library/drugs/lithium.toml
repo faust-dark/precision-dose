@@ -9,7 +9,7 @@ schema_version = "1.0"
 drug = "lithium"
 display_name = "Lithium"
 drug_class = "mood_stabiliser"
-entry_version = "2026.11.1"
+entry_version = "2026.11.2"
 status = "resolved"
 decision_basis = "pk_target"
 
@@ -39,7 +39,7 @@ cl_ref = "S1"
 v1_ref = "S2"
 ka_per_h = "S3"
 lag_h = "S3"
-iiv = "S3"
+iiv = "S5"
 residual = "S3"
 
 [model.scaling]
@@ -56,10 +56,14 @@ hepatic_applies = false
 renal = 1.0
 
 [model.iiv]
-cl_cv_percent = 22.0
-v1_cv_percent = 20.0
+# S5 reports a coefficient of variation of about 24% for lithium clearance after
+# accounting for lean body weight and CrCl. Between-subject variability in volume
+# is NOT invented here: V is treated as fixed, which narrows the predicted peak
+# and, to a lesser degree, the 12 h level -- stated in known_gaps.
+cl_cv_percent = 24.0
+v1_cv_percent = 0.0
 correlation_cl_v1 = 0.0
-source = "S3"
+source = "S5"
 
 [model.residual]
 type = "proportional"
@@ -141,6 +145,11 @@ ref = "Modelling assumption (documented, unvalidated) — absorption rate, lag t
 doi = ""
 note = "Bounded by tests in tests/test_assumptions.py: a 24-h trough and the 12-h level are insensitive to ka in the 0.8-3.0 /h range to within 2%."
 
+[citations.S5]
+ref = "Jermain DM, Crismon ML, Martin ES 3rd. Population pharmacokinetics of lithium. Clin Pharm. 1991;10(5):376-381."
+doi = ""
+note = "79 adult psychiatric inpatients with normal renal function, troughs 12 h post-dose, NONMEM. Volume 32.8 L and clearance 1.36 L/h; lean body weight and creatinine clearance were the significant predictors; the coefficient of variation of clearance was about 24%."
+
 [citations.S4]
 ref = "Lithium carbonate US prescribing information; NICE CG185 (bipolar disorder) and APA practice guideline: serum lithium 0.6-0.8 mmol/L maintenance, 0.8-1.0 mmol/L acute mania, 12 h post-dose sampling."
 doi = ""
@@ -151,7 +160,7 @@ curator = "precision-dose curation (pending pharmacist validation)"
 curated_on = "2026-11-13"
 reviewed_against = ["S1 clearance relation", "S2 Vd and dialysability", "S4 target ranges and 12-h sampling"]
 known_gaps = [
-  "IIV, ka and lag are assumptions, not estimates; they widen the PTA but do not move the point recommendation.",
+  "Clearance variability (CV 24%) is published (S5); between-subject variability in volume is not modelled at all, so the predicted peak is over-confident and the 12 h level distribution is narrower than reality. Ka and lag remain declared assumptions (S3).",
   "The model does not represent sodium/volume status, which is the main determinant of lithium reabsorption in practice; a low-sodium state or a thiazide will raise levels beyond what this model predicts (thiazides are not in the DDI library yet).",
   "Haemodialysis removes lithium efficiently, but this entry does not declare an intradialytic clearance, so the engine refuses lithium dosing in dialysis patients rather than guessing.",
 ]

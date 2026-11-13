@@ -24,6 +24,7 @@ def base(**over):
         "height_cm": 175.0,
         "serum_creatinine_mg_dL": 1.2,
         "albumin_g_dL": 3.8,
+        "hematocrit_percent": 33.0,
         "days_post_transplant": 100,
         "genotypes": {"CYP3A5": "*3/*3"},
         "indication": "test",
@@ -157,12 +158,24 @@ class TestRefusals(unittest.TestCase):
             engine.run_dose(base(age_years=8), "vancomycin", pta_n=100)
         self.assertEqual(ctx.exception.code, "E_AGE_OUT_OF_SCOPE")
 
-    def test_missing_post_transplant_day_refused(self):
+    def test_missing_model_covariate_refused(self):
+        # Andrews 2019 carries albumin and haematocrit as covariates and publishes
+        # no population default for them, so their absence is a refusal, not a 1.0
+        for field in ("hematocrit_percent", "albumin_g_dL"):
+            doc = base()
+            doc.pop(field)
+            with self.assertRaises(EngineError) as ctx:
+                engine.run_dose(doc, "tacrolimus", pta_n=100)
+            self.assertEqual(ctx.exception.code, "E_MISSING_FIELD")
+            self.assertEqual(ctx.exception.field, field)
+
+    def test_post_transplant_day_no_longer_required(self):
+        # Andrews 2019 found time post-transplant not significant; EBE from the
+        # previous (Passey) model is gone, so the input is optional now
         doc = base()
-        doc.pop("days_post_transplant")
-        with self.assertRaises(EngineError) as ctx:
-            engine.run_dose(doc, "tacrolimus", pta_n=100)
-        self.assertEqual(ctx.exception.code, "E_MISSING_FIELD")
+        doc.pop("days_post_transplant", None)
+        res = engine.run_dose(doc, "tacrolimus", pta_n=100)
+        self.assertEqual(res["status"], "ok")
 
 
 class TestLabelCriteria(unittest.TestCase):

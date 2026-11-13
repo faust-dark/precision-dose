@@ -8,10 +8,17 @@
   "serum_creatinine_mg_dL": 1.35,
   "albumin_g_dL": 3.9,
   "hematocrit_percent": 33.0,
-  "days_post_transplant": 120,
-  "genotypes": {"CYP3A5": "*3/*3"},
+  "genotypes": {
+    "CYP3A5": "*3/*3"
+  },
   "co_medications": [
-    {"name": "fluconazole", "dose_mg": 400, "route": "po", "frequency": "qd", "steady_state": true}
+    {
+      "name": "fluconazole",
+      "dose_mg": 400,
+      "route": "po",
+      "frequency": "qd",
+      "steady_state": true
+    }
   ],
   "indication": "kidney_transplant_maintenance"
 }

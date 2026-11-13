@@ -21,6 +21,7 @@ def patient(**over):
         "height_cm": 175.0,
         "serum_creatinine_mg_dL": 1.2,
         "albumin_g_dL": 3.8,
+        "hematocrit_percent": 33.0,
         "days_post_transplant": 100,
         "genotypes": {"CYP3A5": "*3/*3"},
     }
@@ -101,10 +102,14 @@ class TestAttributionExactness(unittest.TestCase):
     def test_attribution_reproduces_clearance(self):
         res = engine.run_dose(patient(), "vancomycin", pta_n=200)
         block = res["attribution"]["cl"]
+        # vancomycin carries an additive non-renal intercept: the factors multiply
+        # the scaled component, and the intercept is added, never folded in
+        reconstructed = (
+            block["reference_value"] * block["total_multiplier"]
+            + block.get("additive_component", 0.0)
+        )
         self.assertAlmostEqual(
-            block["reference_value"] * block["total_multiplier"],
-            block["individual_value"],
-            delta=1e-6 * block["individual_value"],
+            reconstructed, block["individual_value"], delta=1e-6 * block["individual_value"]
         )
 
 

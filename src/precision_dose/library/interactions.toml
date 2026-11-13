@@ -11,9 +11,9 @@ confidence = "moderate"
 source = "S1"
 
 [perpetrators.fluconazole.effects.CYP3A4]
-mechanism = "competitive"
-ki_umol_L = 20.0
-note = "Reported Ki values for azole inhibition of CYP3A4 span roughly 7-30 umol/L; 20 umol/L is used with systemic unbound concentrations ~35-40 umol/L at 400 mg/day, which reproduces the clinically observed ~2-3-fold tacrolimus AUC increase."
+mechanism = "empirical_fold"
+cl_fold = 0.38
+note = "Measured in vivo: tacrolimus clearance fell from 38.8 to 14.7 L/h when fluconazole was added in renal transplant recipients (S1b), a fold of 0.38. An in-vitro Ki (9.2 umol/L for cDNA-expressed CYP3A4, Gibbs 1999) combined with systemic unbound Cmax (~38 umol/L) predicts 0.18, i.e. much stronger inhibition than is observed: systemic unbound concentration overstates the hepatic concentration available to the enzyme. The measured fold is used, and it applies to total clearance rather than through fm."
 
 [perpetrators.fluconazole.effects.CYP2C9]
 mechanism = "competitive"
@@ -83,6 +83,11 @@ f = 0.60
 fu = 0.05
 mw_g_per_mol = 345.42
 source = "S4"
+
+[citations.S1b]
+ref = "Ikeda Y, et al. Pharmacokinetic study of the combination of tacrolimus and fluconazole in renal transplant patients. (PubMed 17044457)."
+doi = ""
+note = "Tacrolimus CL/F 38.79 L/h before vs 14.74 L/h after fluconazole (p = 0.001); oral bioavailability roughly doubled. The measured clearance ratio 0.38 is used directly."
 
 [citations.S1]
 ref = "Venkatakrishnan K, von Moltke LL, Greenblatt DJ. Effects of the antifungal agents on oxidative drug metabolism: clinical relevance. Clin Pharmacokinet. 2000;38(2):111-180."

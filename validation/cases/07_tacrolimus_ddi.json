@@ -14,16 +14,51 @@
     "height_cm": 163.0,
     "serum_creatinine_mg_dL": 1.35,
     "albumin_g_dL": 3.9,
-    "days_post_transplant": 30,
-    "genotypes": {"CYP3A5": "*3/*3"},
-    "co_medications": [{"name": "fluconazole", "dose_mg": 400}],
-    "indication": "kidney_transplant_maintenance"
+    "genotypes": {
+      "CYP3A5": "*3/*3"
+    },
+    "co_medications": [
+      {
+        "name": "fluconazole",
+        "dose_mg": 400
+      }
+    ],
+    "indication": "kidney_transplant_maintenance",
+    "hematocrit_percent": 33.0
   },
   "checks": [
-    {"path": "exposure.trough", "op": "between", "value": [7, 15]},
-    {"path": "attribution.cl.total_change_percent", "op": "le", "value": -40,
-     "note": "phase (day 30 -> x0.86) plus fluconazole inhibition"},
-    {"path": "parameters.values.v1", "op": "between", "value": [330, 500]},
-    {"path": "exposure.matrix", "op": "eq", "value": "whole_blood"}
+    {
+      "path": "exposure.trough",
+      "op": "between",
+      "value": [
+        7,
+        15
+      ]
+    },
+    {
+      "path": "attribution.cl.total_change_percent",
+      "op": "le",
+      "value": -40,
+      "note": "fluconazole fold 0.38 plus BSA/age/albumin covariates"
+    },
+    {
+      "path": "parameters.values.v1",
+      "op": "approx",
+      "value": 692.0,
+      "tolerance": 0.01
+    },
+    {
+      "path": "parameters.values.cl",
+      "op": "between",
+      "value": [
+        5,
+        15
+      ]
+    },
+    {
+      "path": "exposure.matrix",
+      "op": "eq",
+      "value": "whole_blood"
+    }
   ]
 }

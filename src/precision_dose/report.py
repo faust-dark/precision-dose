@@ -78,7 +78,7 @@ def rationale(result, entry, patient, derived, attrib):
             for k, v in pr["values"].items()
         )
         + (
-            f"; terminal half-life {pr['t_half_h']:.1f} h."
+            f"; half-life {pr['t_half_h']:.1f} h ({pr.get('t_half_basis', 'terminal')})."
             if pr.get("t_half_h")
             else "."
         )
@@ -170,13 +170,20 @@ def _attribute_lines(result):
             f"{f['factor']} x{f['multiplier']:.2f} [{f['detail']}]"
             for f in block["factors"]
         ]
-        out.append(
+        text = (
             f"{label}: {block['reference_value']:.2f} -> "
             f"{block['individual_value']:.2f} {unit} "
             f"({block['total_change_percent']:+.1f}%)"
             + (" because " + "; ".join(parts) if parts else " (no covariate effects)")
             + "."
         )
+        if block.get("additive_component"):
+            text += (
+                f" Of that, {block['scaled_component']:.2f} {unit} is the scaled "
+                f"component and {block['additive_component']:.2f} {unit} is the "
+                "non-renal intercept of the published relation (additive, not a factor)."
+            )
+        out.append(text)
     if at.get("cl"):
         out.append(
             "Contributions multiply; do not add the percentages. "

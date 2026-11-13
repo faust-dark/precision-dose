@@ -1,5 +1,45 @@
 # Changelog
 
+## 0.1.1 — 2026-11-13
+
+Library revision: the four numbers flagged at 0.1.0 as thin are replaced with
+published values, and two engine capabilities were added to carry them faithfully.
+
+### Library
+- **Tacrolimus** rebuilt on a single model (Andrews 2019, Br J Clin Pharmacol
+  85:601-615): two-compartment, CL/F 23.0 L/h with 38.6% IIV, V1/F 692 L, V2/F 5340 L,
+  Q/F 11.6 L/h, ka 3.58/h, all from the same cohort. The previous entry mixed a CL/F
+  equation from one model with a V/F from another, and declared IIV as an assumption;
+  both are gone. CYP3A5 (1.63x for any *1 carrier) and CYP3A4*22 (0.80x) are applied as
+  diplotype multipliers. The model's own V2 is large and poorly identified, so the
+  engine now reports the accumulation-based effective half-life over the dosing
+  interval rather than a terminal phase the data cannot support.
+- **Vancomycin** now carries the non-renal clearance intercept S1 omitted:
+  +3.66 mL/min (Matzke 1984). It is applied as an additive component and reported as
+  one, because folding an intercept into a multiplier would invalidate the log-space
+  attribution.
+- **Lithium** clearance variability is 24% from Jermain 1991 rather than an invented
+  22%; between-subject variability in volume is no longer invented at all (it is set to
+  zero and the resulting over-confidence is stated).
+- **Fluconazole → CYP3A4** uses the measured in vivo clearance ratio (0.38, Ikeda 2006,
+  tacrolimus CL 38.8 → 14.7 L/h) instead of an in-vitro Ki extrapolation. The Ki route
+  is retained in the note as the cross-check: it predicts 0.18, which is stronger than
+  is observed, because systemic unbound concentration overstates the hepatic
+  concentration available to the enzyme.
+
+### Engine
+- Continuous covariates from published equations: body surface area, albumin,
+  haematocrit and serum creatinine, each as a ratio to the model's own reference, each
+  refusing rather than defaulting when the value is absent.
+- Additive non-renal clearance support, with the attribution reporting the scaled and
+  additive components separately and the log residual computed against the scaled part.
+- Entries can declare `requires` fields; the engine refuses early, naming the field.
+- Effective half-life for multi-compartment models (accumulation-based).
+- `empirical_fold` DDIs apply to total clearance directly instead of through fraction
+  metabolised, where they would double count.
+- Tie-break between regimens with identical PTA and daily dose now prefers the interval
+  closest to the guideline's usual one, declared per entry as `preferred_interval_h`.
+
 ## 0.1.0 — 2026-11-13
 
 First working version.

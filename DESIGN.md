@@ -807,3 +807,32 @@ and HTTP contracts — is implemented as specified.
 - Wheel installs into a clean venv with no third-party packages and runs.
 - HTTP output is byte-identical to the CLI for the same input.
 - The README worked case is re-run by a test; its headline numbers cannot drift.
+
+### Library revisions after 0.1.0 (v0.1.1)
+
+Four numbers shipped in 0.1.0 as "pending curator validation" were replaced with
+primary-source values, and the engine grew the capabilities needed to carry them
+without fudging:
+
+1. **Tacrolimus** moved to a single model (Andrews 2019). The 0.1.0 entry composed a
+   CL/F equation from Passey 2011 with a V/F from Vadcharavivad 2016 and declared IIV
+   and ka as assumptions. Andrews publishes all of it in one cohort, so the composition
+   and the assumptions are both gone. Its V2/F is large and poorly identified
+   (shrinkage 39%), which is a property of trough-fitted models rather than a defect of
+   the entry; the engine therefore reports an accumulation-based effective half-life
+   instead of the terminal phase.
+2. **Vancomycin** gained the non-renal intercept (Matzke 1984, +3.66 mL/min) that the
+   Thai popPK model omits. The entry is explicitly a composed relation — renal component
+   from S1, intercept from S2 — and the attribution reports the additive component
+   separately rather than pretending it is a multiplier.
+3. **Lithium** clearance variability is Jermain 1991's 24%; volume variability is set to
+   zero instead of being invented, and the consequence (over-confident peaks) is stated
+   in `known_gaps`.
+4. **Fluconazole** uses the measured in vivo clearance fold (0.38, Ikeda 2006) rather
+   than an in-vitro Ki extrapolation, which over-predicted inhibition by a factor of two
+   because systemic unbound concentration is not the hepatic concentration.
+
+Two design commitments were adjusted to keep the provenance honest: additive terms are
+reported as additive (rather than forced into the multiplicative decomposition), and
+regimens with identical PTA and identical daily dose are separated by the interval the
+guideline actually writes, declared per entry.

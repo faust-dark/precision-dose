@@ -82,8 +82,8 @@ def _phase_multiplier(entry, patient):
     return float(mults[-1]), f"day {days:.0f} post-transplant"
 
 
-def _pgx_multiplier(entry, patient, warnings):
-    spec = (entry["model"].get("pgx") or {})
+def _pgx_multiplier(spec, patient, warnings):
+    """One gene's effect. `spec` is a [model.pgx] table."""
     gene = spec.get("gene")
     if not gene:
         return 1.0, None
@@ -120,7 +120,6 @@ def _pgx_multiplier(entry, patient, warnings):
                 "genotypes",
             )
         return float(table_norm[key]), resolved
-    # activity-ratio mode: multiply by activity score relative to reference
     return float(resolved["relative_activity"]), resolved
 
 
@@ -181,6 +180,50 @@ def individualize(entry, patient, derived, interactions, warnings):
         f_age_v = (patient["age_years"] / ref) ** scaling["v1_age_exponent"]
         add("age", f"age {patient['age_years']:.0f} y vs {ref:.0f} y", f_age_v, target="V")
 
+    # Continuous covariates a published model may carry beyond weight/renal/age.
+    # Each is a ratio to the model's own reference value; absent data refuses
+    # rather than silently defaulting the factor to 1.
+    f_bsa = f_alb = f_hct = f_scr = 1.0
+    if scaling.get("cl_bsa_exponent"):
+        bsa = derived["bsa_m2"]["value"]
+        if bsa is None:
+            raise EngineError(
+                E_MISSING_FIELD,
+                f"{entry['drug']}: this model scales clearance by body surface area, "
+                "which needs height_cm",
+                "height_cm",
+            )
+        ref = scaling.get("bsa_reference", 1.93)
+        f_bsa = (bsa / ref) ** scaling["cl_bsa_exponent"]
+        add("body_surface_area", f"BSA {bsa:.2f} vs {ref} m2", f_bsa)
+    if scaling.get("cl_albumin_exponent"):
+        alb = patient.get("albumin_g_dL")
+        if alb is None:
+            raise EngineError(
+                E_MISSING_FIELD,
+                f"{entry['drug']}: this model scales clearance by albumin",
+                "albumin_g_dL",
+            )
+        ref = scaling.get("albumin_reference_g_L", 42.0)
+        f_alb = ((alb * 10.0) / ref) ** scaling["cl_albumin_exponent"]
+        add("albumin", f"albumin {alb*10.0:.0f} vs {ref:.0f} g/L", f_alb)
+    if scaling.get("cl_hematocrit_exponent"):
+        hct = patient.get("hematocrit_percent")
+        if hct is None:
+            raise EngineError(
+                E_MISSING_FIELD,
+                f"{entry['drug']}: this model scales clearance by haematocrit",
+                "hematocrit_percent",
+            )
+        ref = scaling.get("hematocrit_reference", 0.34)
+        f_hct = ((hct / 100.0) / ref) ** scaling["cl_hematocrit_exponent"]
+        add("haematocrit", f"haematocrit {hct:.0f}% vs {ref*100:.0f}%", f_hct)
+    if scaling.get("cl_creatinine_exponent"):
+        ref = scaling.get("creatinine_reference_umol_L", 135.0)
+        scr_umol = patient["serum_creatinine_mg_dL"] * 88.4
+        f_scr = (scr_umol / ref) ** scaling["cl_creatinine_exponent"]
+        add("serum_creatinine", f"SCr {scr_umol:.0f} vs {ref:.0f} umol/L", f_scr)
+
     f_hep = 1.0
     if scaling.get("hepatic_applies"):
         cp = derived["child_pugh"]
@@ -204,15 +247,22 @@ def individualize(entry, patient, derived, interactions, warnings):
     f_phase, phase_detail = _phase_multiplier(entry, patient)
     add("post_transplant_phase", phase_detail or "", f_phase)
 
-    f_pgx, pgx_resolved = _pgx_multiplier(entry, patient, warnings)
-    if pgx_resolved:
-        add(
-            "pharmacogenomics",
-            f"{pgx_resolved['gene']} {pgx_resolved.get('diplotype') or pgx_resolved['phenotype']} "
-            f"({pgx_resolved['phenotype']})",
-            f_pgx,
-            target="Vmax" if (entry["model"].get("pgx") or {}).get("target") == "vmax" else "CL",
-        )
+    pgx_specs = entry["model"].get("pgx") or []
+    if isinstance(pgx_specs, dict):
+        pgx_specs = [pgx_specs]
+    f_pgx = 1.0
+    for spec in pgx_specs:
+        m, resolved = _pgx_multiplier(spec, patient, warnings)
+        f_pgx *= m
+        if resolved:
+            add(
+                "pharmacogenomics",
+                f"{resolved['gene']} "
+                f"{resolved.get('diplotype') or resolved['phenotype']} "
+                f"({resolved['phenotype']})",
+                m,
+                target="Vmax" if spec.get("target") == "vmax" else "CL",
+            )
 
     f_ddi, ddi_contrib, _ = ddi.evaluate(
         patient, model.get("ddi") or {}, interactions, warnings
@@ -221,17 +271,37 @@ def individualize(entry, patient, derived, interactions, warnings):
         if c.get("applied"):
             add(
                 "ddi",
-                f"{c['perpetrator']} {c['mechanism']} on {c['pathway']} "
-                f"([I]u {c['iu_umol_L']:.1f} umol/L)",
+                f"{c['perpetrator']} {c['mechanism']} on {c['pathway']}"
+                + (
+                    f" ([I]u {c['iu_umol_L']:.1f} umol/L)"
+                    if c.get("iu_umol_L") is not None
+                    else " (measured clearance ratio)"
+                ),
                 c["cl_multiplier"],
             )
 
     structure = model["structure"]
     params = {}
     if structure in ("one_compartment", "two_compartment"):
-        params["cl"] = (
-            model["cl_ref"] * f_weight_cl * renal * f_age_cl * f_hep * f_phase * (1.0 + (f_pgx - 1.0))
-        ) * f_ddi
+        cl_renal_part = (
+            model["cl_ref"]
+            * f_weight_cl
+            * renal
+            * f_age_cl
+            * f_hep
+            * f_phase
+            * f_pgx
+            * f_bsa
+            * f_alb
+            * f_hct
+            * f_scr
+        )
+        cl_nonrenal = float(scaling.get("cl_nonrenal_l_h", 0.0) or 0.0)
+        # the published renal relation may carry an intercept (Matzke 1984):
+        # CL = a*CrCl + b, with b an absolute non-renal term, not a multiplier
+        params["cl"] = (cl_renal_part + cl_nonrenal) * f_ddi
+        params["_cl_renal_component"] = cl_renal_part * f_ddi
+        params["_cl_nonrenal_component"] = cl_nonrenal * f_ddi
         params["v1"] = model["v1_ref"] * f_weight_v * f_age_v * f_hep
         if structure == "two_compartment":
             params["v2"] = model["v2_ref"] * f_weight_v
@@ -603,6 +673,7 @@ def run_dose(
     if entry["decision_basis"] == "label_criteria":
         return _run_label(entry, patient, derived, warnings, interactions, lib)
 
+    _require_fields(entry, patient, derived)
     target = select_target(entry, target_id, patient)
     mic = patient.get("mic_mg_L")
     if target["metric"] == "auc24_over_mic" and not mic:
@@ -790,7 +861,9 @@ def run_dose(
     warnings[:] = deduped
 
     loading = _loading(entry, patient, derived, warnings)
-    attrib = attribution.build(contribs, params, entry)
+    attrib = attribution.build(
+        contribs, params, entry, additive={"cl": params.get("_cl_nonrenal_component", 0.0)}
+    )
 
     result = {
         "schema_version": "1.0",
@@ -838,10 +911,15 @@ def run_dose(
         },
         "parameters": {
             "structure": entry["model"]["structure"],
-            "values": {k: round(v, 6) for k, v in params.items()},
-            "units": {k: _param_unit(k, entry) for k in params},
+            "values": {k: round(v, 6) for k, v in params.items() if not k.startswith("_")},
+            "units": {k: _param_unit(k, entry) for k in params if not k.startswith("_")},
             "individualized": bool(contribs),
-            "t_half_h": round(model.half_life(), 4) if hasattr(model, "half_life") else None,
+            "t_half_h": _t_half(model, regimen, entry),
+            "t_half_basis": (
+                "effective over the dosing interval"
+                if entry["model"]["structure"] == "two_compartment"
+                else "terminal"
+            ),
             "posterior": posterior,
         },
         "attribution": attrib,
@@ -942,16 +1020,54 @@ def run_dose(
     return result
 
 
+def _t_half(model, regimen, entry):
+    """Effective half-life for multi-compartment fits, terminal otherwise."""
+    if entry["model"]["structure"] == "two_compartment" and hasattr(
+        model, "effective_half_life"
+    ):
+        val = model.effective_half_life(regimen)
+        return round(val, 4) if val else None
+    if hasattr(model, "half_life"):
+        return round(model.half_life(), 4)
+    return None
+
+
+def _require_fields(entry, patient, derived):
+    """Refuse early, with a named field, when the model needs data that is absent."""
+    for field in entry["model"].get("requires", []):
+        if field == "bsa_m2":
+            if derived["bsa_m2"]["value"] is None:
+                raise EngineError(
+                    E_MISSING_FIELD,
+                    f"{entry['drug']} needs body surface area, which needs height_cm",
+                    "height_cm",
+                )
+            continue
+        if patient.get(field) is None:
+            raise EngineError(
+                E_MISSING_FIELD,
+                f"{entry['drug']}: this pharmacokinetic model requires {field}; it has no "
+                "population default, so the engine will not substitute one",
+                field,
+            )
+
+
 def _select(entry, rows, target, warnings):
     feasible = [r for r in rows if r.get("safety_ok") is not False] if rows else []
     if not feasible:
         feasible = rows
+    # Tie-break, in order: highest PTA; highest PST; lowest total daily dose; then
+    # the interval closest to the one the guideline actually uses (entries declare
+    # preferred_interval_h), then the smaller dose. Regimens with the same daily
+    # dose attain the target equally often, so this only decides which of several
+    # equivalent exposures is the more conventional one to write on a chart.
+    preferred = (entry.get("constraints") or {}).get("preferred_interval_h")
     feasible.sort(
         key=lambda r: (
             -round(r["pta"], 9),
             -round(r.get("pst", r["pta"]), 9),
             r["daily_dose"],
-            -r["interval_h"],
+            abs(r["interval_h"] - preferred) if preferred else r["interval_h"],
             r["dose"],
         )
     )
