@@ -258,7 +258,7 @@ paediatric_refusal                 PASS       0/0    E_AGE_OUT_OF_SCOPE
 8/8 cases passed
 ```
 
-Plus 81 unit and property tests: analytic PK oracles, mass balance, monotonicity (AUC in
+Plus 83 unit and property tests: analytic PK oracles, mass balance, monotonicity (AUC in
 dose, CL in renal function, CL in inhibitor strength, V in weight), Bayesian parameter
 recovery, determinism, no-network, and the edge cases (dialysis, severe hepatic
 impairment, obesity, age 19 and 95, missing height, anuria).
